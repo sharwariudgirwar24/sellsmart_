@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import AnimatedBackground from '../components/AnimatedBackground'
+import AnimatedBackground from '../components/shared/AnimatedBackground'
 import '../styles/landing.css'
 
 const features = [
@@ -48,8 +48,8 @@ export default function Landing() {
                             }}>SellSmart</span>
                         </div>
                         <div className="hero-badge">
-                            <i className="fa-solid fa-user-plus"></i>
-                            Register as a Business Owner or Customer
+                            <i className="fa-solid fa-eye"></i>
+                            Because every business needs visibility
                         </div>
                         <h1>
                             Your Local Business,<br />
@@ -65,8 +65,8 @@ export default function Landing() {
                                 <i className="fa-solid fa-magnifying-glass"></i>
                                 Discover SellSmart
                             </button>
-                            {/* Goes to signup page */}
-                            <Link to="/signup" className="btn-primary">
+                            {/* Goes to auth role selector */}
+                            <Link to="/role-select" className="btn-primary">
                                 <i className="fa-solid fa-rocket"></i>
                                 Get Started
                             </Link>
@@ -160,4 +160,3 @@ export default function Landing() {
 
 
 
-//sellssmart a digital platform foe micro and small buisnesses to create online profiles, showcase their work, and connect with local customers. It offers features like portfolio uploads, direct messaging, and local discovery to help small businesses thrive in the digital age.

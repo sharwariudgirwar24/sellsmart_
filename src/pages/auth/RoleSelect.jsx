@@ -57,7 +57,7 @@ export default function RoleSelect() {
                     </div>
                 </div>
 
-                <p className="copyright">© 2026 SellSmart. All rights reserved.</p>
+                <p className="copyright">2026 SellSmart</p>
             </div>
         </>
     )

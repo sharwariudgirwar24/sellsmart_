@@ -302,3 +302,13 @@ button {
     border-color: var(--sky);
     transform: translateY(-2px);
 }
+
+/* ─── Responsive Buttons ─── */
+@media(max-width: 600px) {
+
+    .btn-primary,
+    .btn-ghost {
+        width: 100%;
+        justify-content: center;
+    }
+}

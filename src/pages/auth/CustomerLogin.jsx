@@ -2,19 +2,12 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import Navbar from '../../components/shared/Navbar'
 import AnimatedBackground from '../../components/shared/AnimatedBackground'
+import { useAppData } from '../../context/AppDataContext'
 import '../../styles/auth.css'
 
-/**
- * CustomerLogin – Standalone login page for Customers.
- *
- * TODO: Connect to backend API
- *   Endpoint : POST /api/auth/customer/login
- *   Payload  : { email, password }
- *   Response : { token, user }
- *   On success: store token → navigate('/customer-dashboard')
- */
 export default function CustomerLogin() {
     const navigate = useNavigate()
+    const { login } = useAppData()
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState('')
 
@@ -22,18 +15,21 @@ export default function CustomerLogin() {
         e.preventDefault()
         setLoading(true)
         setError('')
-        // ── TODO: replace block below with real API call ──────────────────
-        // const { email, password } = Object.fromEntries(new FormData(e.target))
-        // const res = await fetch('/api/auth/customer/login', {
-        //     method: 'POST',
-        //     headers: { 'Content-Type': 'application/json' },
-        //     body: JSON.stringify({ email, password }),
-        // })
-        // const data = await res.json()
-        // if (!res.ok) { setError(data.message); setLoading(false); return }
-        // localStorage.setItem('token', data.token)
-        // ─────────────────────────────────────────────────────────────────
-        setTimeout(() => navigate('/customer-dashboard'), 600)
+
+        const { email, password } = Object.fromEntries(new FormData(e.target))
+
+        try {
+            const res = login(email, password, 'customer')
+            if (res.success) {
+                setTimeout(() => navigate('/customer-dashboard'), 600)
+            } else {
+                setError(res.error || 'Login failed')
+                setLoading(false)
+            }
+        } catch (err) {
+            setError('An error occurred during login.')
+            setLoading(false)
+        }
     }
 
     return (
@@ -91,7 +87,7 @@ export default function CustomerLogin() {
                     </div>
                 </div>
 
-                <p className="copyright">© 2026 SellSmart. All rights reserved.</p>
+                <p className="copyright">2026 SellSmart</p>
             </div>
         </>
     )

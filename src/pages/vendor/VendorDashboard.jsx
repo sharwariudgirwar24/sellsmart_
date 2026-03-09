@@ -1,37 +1,20 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Sidebar from '../../components/shared/Sidebar'
 import Topbar from '../../components/shared/Topbar'
 import PostGallery from '../../components/vendor/PostGallery'
 import ChatBox from '../../components/shared/ChatSection'
+import { useAppData } from '../../context/AppDataContext'
 import '../../styles/dashboard.css'
 
-// ─── Sample Data (replace with API calls) ──────────────────────────────────
-// TODO: GET /api/vendor/posts
-const SAMPLE_POSTS = [
-    { id: 1, icon: '🧵', label: 'Photo', caption: 'Bridal Lehenga Set', price: '₹8,500' },
-    { id: 2, icon: '📸', label: 'Photo', caption: 'Silk Blouse Embroidery', price: '₹1,200' },
-    { id: 3, icon: '🎥', label: 'Video', caption: 'Stitching Process Reel', price: '₹600' },
-    { id: 4, icon: '👗', label: 'Photo', caption: 'Kids Party Wear', price: '₹2,000' },
-    { id: 5, icon: '🪡', label: 'Photo', caption: 'Heavy Work Saree Blouse', price: '₹3,500' },
-    { id: 6, icon: '✂️', label: 'Photo', caption: 'Casual Kurta – Cotton', price: '₹800' },
-]
-
-// TODO: GET /api/messages/threads
-const SAMPLE_THREADS = [
-    { id: 1, name: 'Ananya S.', preview: 'Hi! I need a blouse in 3 days', time: '2m', unread: 2, initials: 'AS', color: '#4f46e5' },
-    { id: 2, name: 'Rahul M.', preview: 'Can you do embroidery work?', time: '1h', unread: 0, initials: 'RM', color: '#7c3aed' },
-    { id: 3, name: 'Meera K.', preview: 'What are your charges?', time: '3h', unread: 1, initials: 'MK', color: '#9333ea' },
-]
-
 // ─── Overview Section ──────────────────────────────────────────────────────
-function Overview({ onNavigate }) {
+function Overview({ onNavigate, vendorName, stats }) {
     return (
         <div className="content">
             <div className="dash-welcome">
                 <div className="dash-welcome-icon"><i className="fa-solid fa-store"></i></div>
                 <div>
-                    <h2>Welcome back, Business Owner! 👋</h2>
+                    <h2>Hello {vendorName}! 👋</h2>
                     <p>Your profile is live. Customers can already discover and contact you.</p>
                 </div>
             </div>
@@ -39,9 +22,9 @@ function Overview({ onNavigate }) {
             <div className="section-heading"><i className="fa-solid fa-chart-bar"></i> Quick Stats</div>
             <div className="dash-stats">
                 {[
-                    { val: '124', lbl: 'Profile Views', delta: '+12% this week' },
-                    { val: '38', lbl: 'WhatsApp Contacts', delta: '+5 this week' },
-                    { val: '9', lbl: 'Posts Published', delta: '2 new' },
+                    { val: stats?.views || 0, lbl: 'Profile Views', delta: '+12% this week' },
+                    { val: stats?.contacts || 0, lbl: 'WhatsApp Contacts', delta: '+5 this week' },
+                    { val: stats?.posts || 0, lbl: 'Posts Published', delta: '2 new' },
                 ].map(({ val, lbl, delta }) => (
                     <div className="stat-card" key={lbl}>
                         <div className="stat-val">{val}</div>
@@ -68,30 +51,32 @@ function Overview({ onNavigate }) {
 }
 
 // ─── Profile Section ────────────────────────────────────────────────────────
-function Profile() {
+function Profile({ vendor, onEdit }) {
     return (
         <div className="content">
             <div className="card">
                 <div className="section-heading"><i className="fa-solid fa-store"></i> Business Profile</div>
                 <div className="profile-hero">
                     <div className="profile-avatar-wrap">
-                        <div className="profile-avatar">🧵</div>
+                        <div className="profile-avatar">{vendor?.businessName?.charAt(0) || '🧵'}</div>
                         <div className="avatar-cam"><i className="fa-solid fa-camera"></i></div>
                     </div>
                     <div style={{ flex: 1 }}>
-                        <h2 style={{ fontSize: '1.2rem', fontWeight: 800 }}>Priya's Boutique</h2>
+                        <h2 style={{ fontSize: '1.2rem', fontWeight: 800 }}>{vendor?.businessName || 'Your Business'}</h2>
                         <div className="verified"><i className="fa-solid fa-circle-check"></i> Verified Business</div>
-                        <div className="cat-tag"><i className="fa-solid fa-tag"></i> Fashion &amp; Tailoring</div>
+                        <div className="cat-tag"><i className="fa-solid fa-tag"></i> {vendor?.category || 'Category'}</div>
                         <div className="profile-meta">
-                            <span><i className="fa-solid fa-location-dot"></i> Pune, Maharashtra</span>
-                            <span><i className="fa-solid fa-phone"></i> +91 98765 43210</span>
-                            <span><i className="fa-regular fa-envelope"></i> priya@boutique.com</span>
+                            <span><i className="fa-solid fa-location-dot"></i> {vendor?.location || 'Location'}</span>
+                            <span><i className="fa-solid fa-phone"></i> {vendor?.phone || 'Phone'}</span>
+                            <span><i className="fa-regular fa-envelope"></i> {vendor?.email || 'Email'}</span>
                         </div>
                         <div className="profile-actions">
-                            <button className="btn-primary-d"><i className="fa-solid fa-pen"></i> Edit Profile</button>
-                            <a href="https://wa.me/919876543210" className="wa-btn" target="_blank" rel="noreferrer">
-                                <i className="fa-brands fa-whatsapp"></i> WhatsApp
-                            </a>
+                            <button className="btn-primary-d" onClick={onEdit}><i className="fa-solid fa-pen"></i> Edit Profile</button>
+                            {vendor?.whatsapp && (
+                                <a href={`https://wa.me/${vendor.whatsapp.replace(/\D/g, '')}`} className="wa-btn" target="_blank" rel="noreferrer">
+                                    <i className="fa-brands fa-whatsapp"></i> WhatsApp
+                                </a>
+                            )}
                             <button className="btn-ghost-d"><i className="fa-solid fa-share-nodes"></i> Share</button>
                         </div>
                     </div>
@@ -102,22 +87,41 @@ function Profile() {
 }
 
 // ─── Upload Post Section ─────────────────────────────────────────────────────
-function UploadSection({ onDone }) {
-    const [type, setType] = useState('image')
-    const [avail, setAvail] = useState('available')
+function UploadSection({ onDone, editingPost, updatePost }) {
+    const { addPost } = useAppData()
+    const [type, setType] = useState(editingPost?.type || 'image')
+    const [avail, setAvail] = useState(editingPost?.available || 'available')
     const [loading, setLoading] = useState(false)
 
     const handlePublish = (e) => {
         e.preventDefault()
         setLoading(true)
-        // TODO: POST /api/vendor/posts (multipart/form-data)
-        setTimeout(() => { setLoading(false); onDone() }, 700)
+        const formData = Object.fromEntries(new FormData(e.target))
+
+        const postData = {
+            type,
+            icon: type === 'image' ? (type === 'image' && formData.title.toLowerCase().includes('shirt') ? '👕' : '📸') : '🎥',
+            label: type === 'image' ? 'Photo' : 'Video',
+            caption: formData.title,
+            price: `₹${formData.price}`,
+            available: avail
+        }
+
+        setTimeout(() => {
+            if (editingPost) {
+                updatePost(editingPost.id, postData)
+            } else {
+                addPost(postData)
+            }
+            setLoading(false)
+            onDone()
+        }, 700)
     }
 
     return (
         <div className="content">
             <div className="card">
-                <div className="section-heading"><i className="fa-solid fa-cloud-arrow-up"></i> Post Your Work</div>
+                <div className="section-heading"><i className="fa-solid fa-cloud-arrow-up"></i> {editingPost ? 'Edit Post' : 'Post Your Work'}</div>
                 <div className="upload-type-row">
                     {['image', 'video'].map((t) => (
                         <button key={t} type="button"
@@ -136,7 +140,7 @@ function UploadSection({ onDone }) {
                     </div>
                     <div className="form-group-d">
                         <label className="form-label">Title / Caption</label>
-                        <input className="form-input-d" name="title" type="text" placeholder="e.g. Festive silk blouse collection" />
+                        <input className="form-input-d" name="title" type="text" defaultValue={editingPost?.caption || ''} placeholder="e.g. Festive silk blouse collection" required />
                     </div>
                     <div className="form-group-d">
                         <label className="form-label">Description</label>
@@ -145,7 +149,7 @@ function UploadSection({ onDone }) {
                     <div className="price-avail-row">
                         <div className="form-group-d" style={{ marginTop: 0 }}>
                             <label className="form-label">Starting Price (₹)</label>
-                            <input className="form-input-d" name="price" type="number" placeholder="500" />
+                            <input className="form-input-d" name="price" type="number" defaultValue={editingPost?.price?.replace(/\D/g, '') || ''} placeholder="500" required />
                         </div>
                         <div className="form-group-d" style={{ marginTop: 0 }}>
                             <label className="form-label">Availability</label>
@@ -162,7 +166,7 @@ function UploadSection({ onDone }) {
                     </div>
                     <button type="submit" className="publish-btn" disabled={loading}>
                         <i className="fa-solid fa-paper-plane"></i>
-                        {loading ? 'Publishing…' : 'Publish Post'}
+                        {loading ? (editingPost ? 'Updating…' : 'Publishing…') : (editingPost ? 'Update Post' : 'Publish Post')}
                     </button>
                 </form>
             </div>
@@ -171,30 +175,35 @@ function UploadSection({ onDone }) {
 }
 
 // ─── Settings Section ────────────────────────────────────────────────────────
-function Settings() {
+function Settings({ vendor, onSave }) {
+    const handleSave = (e) => {
+        e.preventDefault()
+        const formData = Object.fromEntries(new FormData(e.target))
+        onSave(formData)
+    }
+
     return (
         <div className="content">
-            <div className="card">
+            <form className="card" onSubmit={handleSave}>
                 <div className="section-heading"><i className="fa-solid fa-gear"></i> Account Settings</div>
                 <div className="settings-grid">
                     {[
-                        { label: 'Business Name', type: 'text', val: "Priya's Boutique", name: 'businessName' },
-                        { label: 'Category', type: 'text', val: 'Fashion & Tailoring', name: 'category' },
-                        { label: 'WhatsApp', type: 'tel', val: '+91 98765 43210', name: 'whatsapp' },
-                        { label: 'Instagram Handle', type: 'text', val: '@priyasboutique', name: 'instagram' },
-                        { label: 'City / Location', type: 'text', val: 'Pune, Maharashtra', name: 'location' },
+                        { label: 'Business Name', type: 'text', val: vendor?.businessName, name: 'businessName' },
+                        { label: 'Category', type: 'text', val: vendor?.category, name: 'category' },
+                        { label: 'WhatsApp', type: 'tel', val: vendor?.whatsapp || vendor?.phone, name: 'whatsapp' },
+                        { label: 'Instagram Handle', type: 'text', val: vendor?.instagram, name: 'instagram' },
+                        { label: 'City / Location', type: 'text', val: vendor?.location, name: 'location' },
                     ].map(({ label, type, val, name }) => (
                         <div className="form-group-d" key={name}>
                             <label className="form-label">{label}</label>
-                            <input className="form-input-d" type={type} defaultValue={val} name={name} />
+                            <input className="form-input-d" type={type} defaultValue={val || ''} name={name} required />
                         </div>
                     ))}
                 </div>
-                {/* TODO: PUT /api/vendor/settings */}
-                <button className="publish-btn" style={{ marginTop: '1.2rem' }}>
+                <button type="submit" className="publish-btn" style={{ marginTop: '1.2rem' }}>
                     <i className="fa-solid fa-floppy-disk"></i> Save Changes
                 </button>
-            </div>
+            </form>
         </div>
     )
 }
@@ -211,19 +220,52 @@ const TITLES = {
 
 // ─── VendorDashboard (main export) ─────────────────────────────────────────
 export default function VendorDashboard() {
+    const { currentUser, posts, threads, deletePost, updatePost, updateVendorProfile } = useAppData()
+    const navigate = useNavigate()
+
+    // Redirect if not logged in
+    useEffect(() => {
+        if (!currentUser || currentUser.role !== 'vendor') {
+            navigate('/vendor-login')
+        }
+    }, [currentUser, navigate])
+
     const [section, setSection] = useState('overview')
     const [sidebarOpen, setSidebarOpen] = useState(false)
-    const navigate = useNavigate()
+    const [editingPost, setEditingPost] = useState(null)
+
+    if (!currentUser) return null
+
+    // Filter data for current vendor
+    const vendorPosts = posts.filter(p => p.vendorId === currentUser.id)
+    const vendorThreads = threads.filter(t => t.vendorId === currentUser.id)
+
+    // Handlers
+    const handleEditPost = (post) => {
+        setEditingPost(post)
+        setSection('upload')
+    }
+
+    const handleDeletePost = (post) => {
+        if (window.confirm('Are you sure you want to delete this post?')) {
+            deletePost(post.id)
+        }
+    }
+
+    const handleSaveSettings = (data) => {
+        updateVendorProfile(currentUser.id, data)
+        setSection('profile')
+    }
 
     const renderSection = () => {
         switch (section) {
-            case 'overview': return <Overview onNavigate={setSection} />
-            case 'profile': return <Profile />
-            case 'upload': return <UploadSection onDone={() => setSection('posts')} />
-            case 'posts': return <PostGallery posts={SAMPLE_POSTS} />
-            case 'messages': return <ChatBox threads={SAMPLE_THREADS} avatarKey="initials" />
-            case 'settings': return <Settings />
-            default: return <Overview onNavigate={setSection} />
+            case 'overview': return <Overview onNavigate={setSection} vendorName={currentUser.name || currentUser.ownerName} stats={{ ...currentUser.stats, posts: vendorPosts.length }} />
+            case 'profile': return <Profile vendor={currentUser} onEdit={() => setSection('settings')} />
+            case 'upload': return <UploadSection onDone={() => { setSection('posts'); setEditingPost(null); }} editingPost={editingPost} updatePost={updatePost} />
+            case 'posts': return <PostGallery posts={vendorPosts} onEdit={handleEditPost} onDelete={handleDeletePost} />
+            case 'messages': return <ChatBox threads={vendorThreads} avatarKey="initials" />
+            case 'settings': return <Settings vendor={currentUser} onSave={handleSaveSettings} />
+            default: return <Overview onNavigate={setSection} vendorName={currentUser.name} />
         }
     }
 
@@ -232,7 +274,7 @@ export default function VendorDashboard() {
             <Sidebar
                 role="business"
                 activeSection={section}
-                onNavigate={setSection}
+                onNavigate={(s) => { setEditingPost(null); setSection(s); }}
                 isOpen={sidebarOpen}
                 onClose={() => setSidebarOpen(false)}
             />

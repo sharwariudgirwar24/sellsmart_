@@ -464,4 +464,9 @@ section {
     .cta-box {
         padding: 2.5rem 1.5rem;
     }
+
+    .hero-actions {
+        flex-direction: column;
+        width: 100%;
+    }
 }

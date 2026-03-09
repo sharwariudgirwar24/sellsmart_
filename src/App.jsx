@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { AppDataProvider } from './context/AppDataContext'
 
 // ── Pages ──────────────────────────────────────────────────────────────────
 import LandingPage from './pages/Landing'
@@ -17,29 +18,31 @@ import CustomerDashboard from './pages/customer/CustomerDashboard'
 // ── App ────────────────────────────────────────────────────────────────────
 export default function App() {
     return (
-        <BrowserRouter>
-            <Routes>
-                {/* Landing */}
-                <Route path="/" element={<LandingPage />} />
+        <AppDataProvider>
+            <BrowserRouter>
+                <Routes>
+                    {/* Landing */}
+                    <Route path="/" element={<LandingPage />} />
 
-                {/* Auth gate */}
-                <Route path="/role-select" element={<RoleSelect />} />
+                    {/* Auth gate */}
+                    <Route path="/role-select" element={<RoleSelect />} />
 
-                {/* Vendor auth */}
-                <Route path="/vendor-login" element={<VendorLogin />} />
-                <Route path="/vendor-signup" element={<VendorSignup />} />
+                    {/* Vendor auth */}
+                    <Route path="/vendor-login" element={<VendorLogin />} />
+                    <Route path="/vendor-signup" element={<VendorSignup />} />
 
-                {/* Customer auth */}
-                <Route path="/customer-login" element={<CustomerLogin />} />
-                <Route path="/customer-signup" element={<CustomerSignup />} />
+                    {/* Customer auth */}
+                    <Route path="/customer-login" element={<CustomerLogin />} />
+                    <Route path="/customer-signup" element={<CustomerSignup />} />
 
-                {/* Dashboards */}
-                <Route path="/vendor-dashboard" element={<VendorDashboard />} />
-                <Route path="/customer-dashboard" element={<CustomerDashboard />} />
+                    {/* Dashboards */}
+                    <Route path="/vendor-dashboard" element={<VendorDashboard />} />
+                    <Route path="/customer-dashboard" element={<CustomerDashboard />} />
 
-                {/* Fallback */}
-                <Route path="*" element={<Navigate to="/" replace />} />
-            </Routes>
-        </BrowserRouter>
+                    {/* Fallback */}
+                    <Route path="*" element={<Navigate to="/" replace />} />
+                </Routes>
+            </BrowserRouter>
+        </AppDataProvider>
     )
 }

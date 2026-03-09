@@ -2,19 +2,12 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import Navbar from '../../components/shared/Navbar'
 import AnimatedBackground from '../../components/shared/AnimatedBackground'
+import { useAppData } from '../../context/AppDataContext'
 import '../../styles/auth.css'
 
-/**
- * CustomerSignup – Standalone signup page for Customers.
- *
- * TODO: Connect to backend API
- *   Endpoint : POST /api/auth/customer/register
- *   Payload  : { name, email, phone, password }
- *   Response : { token, user }
- *   On success: store token → navigate('/customer-dashboard')
- */
 export default function CustomerSignup() {
     const navigate = useNavigate()
+    const { register } = useAppData()
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState('')
 
@@ -22,18 +15,22 @@ export default function CustomerSignup() {
         e.preventDefault()
         setLoading(true)
         setError('')
-        // ── TODO: replace block below with real API call ──────────────────
-        // const formData = Object.fromEntries(new FormData(e.target))
-        // const res = await fetch('/api/auth/customer/register', {
-        //     method: 'POST',
-        //     headers: { 'Content-Type': 'application/json' },
-        //     body: JSON.stringify(formData),
-        // })
-        // const data = await res.json()
-        // if (!res.ok) { setError(data.message); setLoading(false); return }
-        // localStorage.setItem('token', data.token)
-        // ─────────────────────────────────────────────────────────────────
-        setTimeout(() => navigate('/customer-dashboard'), 600)
+
+        const formData = Object.fromEntries(new FormData(e.target))
+        formData.role = 'customer'
+
+        try {
+            const res = register(formData)
+            if (res.success) {
+                setTimeout(() => navigate('/customer-dashboard'), 600)
+            } else {
+                setError(res.error || 'Registration failed')
+                setLoading(false)
+            }
+        } catch (err) {
+            setError('An error occurred during registration.')
+            setLoading(false)
+        }
     }
 
     return (
@@ -107,7 +104,7 @@ export default function CustomerSignup() {
                     </div>
                 </div>
 
-                <p className="copyright">© 2026 SellSmart. All rights reserved.</p>
+                <p className="copyright">2026 SellSmart</p>
             </div>
         </>
     )

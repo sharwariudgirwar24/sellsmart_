@@ -2,19 +2,12 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import Navbar from '../../components/shared/Navbar'
 import AnimatedBackground from '../../components/shared/AnimatedBackground'
+import { useAppData } from '../../context/AppDataContext'
 import '../../styles/auth.css'
 
-/**
- * VendorSignup – Standalone signup page for Business Owners.
- *
- * TODO: Connect to backend API
- *   Endpoint : POST /api/auth/vendor/register
- *   Payload  : { ownerName, businessName, email, phone, password }
- *   Response : { token, vendor }
- *   On success: store token → navigate('/vendor-dashboard')
- */
 export default function VendorSignup() {
     const navigate = useNavigate()
+    const { register } = useAppData()
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState('')
 
@@ -22,18 +15,24 @@ export default function VendorSignup() {
         e.preventDefault()
         setLoading(true)
         setError('')
-        // ── TODO: replace block below with real API call ──────────────────
-        // const formData = Object.fromEntries(new FormData(e.target))
-        // const res = await fetch('/api/auth/vendor/register', {
-        //     method: 'POST',
-        //     headers: { 'Content-Type': 'application/json' },
-        //     body: JSON.stringify(formData),
-        // })
-        // const data = await res.json()
-        // if (!res.ok) { setError(data.message); setLoading(false); return }
-        // localStorage.setItem('token', data.token)
-        // ─────────────────────────────────────────────────────────────────
-        setTimeout(() => navigate('/vendor-dashboard'), 600)
+
+        const formData = Object.fromEntries(new FormData(e.target))
+        formData.role = 'vendor'
+
+        try {
+            const res = register(formData)
+            if (res.success) {
+                // Ensure name is stored for backward compatibility if needed, but context handles currentUser now
+                localStorage.setItem('vendorName', formData.ownerName)
+                setTimeout(() => navigate('/vendor-dashboard'), 600)
+            } else {
+                setError(res.error || 'Registration failed')
+                setLoading(false)
+            }
+        } catch (err) {
+            setError('An error occurred during registration.')
+            setLoading(false)
+        }
     }
 
     return (
@@ -115,7 +114,7 @@ export default function VendorSignup() {
                     </div>
                 </div>
 
-                <p className="copyright">© 2026 SellSmart. All rights reserved.</p>
+                <p className="copyright">2026 SellSmart</p>
             </div>
         </>
     )

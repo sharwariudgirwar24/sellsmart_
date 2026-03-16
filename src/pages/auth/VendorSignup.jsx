@@ -15,26 +15,71 @@ import '../../styles/auth.css'
  */
 export default function VendorSignup() {
     const navigate = useNavigate()
-    const [loading, setLoading] = useState(false)
-    const [error, setError] = useState('')
 
+    const [bisuness, setBisuness] = useState({
+        FullName: "",
+        BusinessName: "",
+        Phone: "",
+        Email: "",
+        password: "",
+    })
+
+
+    const [loading, setLoading] = useState(false)
+    const [error, setError] = useState("")
+
+    const handleinput = (e) => {
+        const name = e.target.name
+        const value = e.target.value
+
+        setBisuness({
+            ...bisuness,
+            [name]: value,
+        })
+    }
+
+    // input handle
     const handleSubmit = async (e) => {
         e.preventDefault()
-        setLoading(true)
-        setError('')
-        // ── TODO: replace block below with real API call ──────────────────
-        // const formData = Object.fromEntries(new FormData(e.target))
-        // const res = await fetch('/api/auth/vendor/register', {
-        //     method: 'POST',
-        //     headers: { 'Content-Type': 'application/json' },
-        //     body: JSON.stringify(formData),
-        // })
-        // const data = await res.json()
-        // if (!res.ok) { setError(data.message); setLoading(false); return }
-        // localStorage.setItem('token', data.token)
-        // ─────────────────────────────────────────────────────────────────
-        setTimeout(() => navigate('/vendor-dashboard'), 600)
+        console.log("form submitted")
+
+        try {
+            setLoading(true)
+            setError("")
+
+            console.log(bisuness)
+
+            const response = await fetch("http://localhost:5000/vendorsignup", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                credentials: "include",
+                body: JSON.stringify(bisuness),
+            })
+
+            const data = await response.json()
+
+            if (response.ok) {
+                console.log("Signup Success", data)
+                navigate("/vendor-dashboard")
+            } else {
+                setError("Signup failed")
+            }
+
+        } catch (err) {
+            console.log(err)
+            setError("Server error")
+        } finally {
+            setLoading(false)
+        }
     }
+
+
+
+
+
+
 
     return (
         <>
@@ -64,32 +109,48 @@ export default function VendorSignup() {
                                 <label htmlFor="v-owner">Your Name</label>
                                 <div className="input-wrap">
                                     <i className="fa-solid fa-user"></i>
-                                    <input id="v-owner" name="ownerName" type="text" className="form-input"
-                                        placeholder="Jane Doe" required />
+                                    <input id="v-owner" name="FullName" type="text" className="form-input"
+                                        placeholder="Jane Doe"
+                                        value={bisuness.FullName}
+                                        onChange={handleinput}
+
+                                        required />
                                 </div>
                             </div>
                             <div className="form-group">
-                                <label htmlFor="v-biz">Business Name</label>
+                                <label htmlFor="v-biz">Bisuness Name</label>
                                 <div className="input-wrap">
                                     <i className="fa-solid fa-store"></i>
-                                    <input id="v-biz" name="businessName" type="text" className="form-input"
-                                        placeholder="Jane's Boutique" required />
+                                    <input id="v-biz" name="BusinessName" type="text" className="form-input"
+                                        placeholder="Jane's Boutique"
+                                        value={bisuness.BusinessName}
+                                        onChange={handleinput}
+
+                                        required />
                                 </div>
                             </div>
                             <div className="form-group">
                                 <label htmlFor="v-email">Business Email</label>
                                 <div className="input-wrap">
                                     <i className="fa-regular fa-envelope"></i>
-                                    <input id="v-email" name="email" type="email" className="form-input"
-                                        placeholder="contact@mybusiness.com" required />
+                                    <input id="v-email" name="Email" type="email" className="form-input"
+                                        placeholder="contact@mybusiness.com"
+                                        value={bisuness.Email}
+                                        onChange={handleinput}
+
+                                        required />
                                 </div>
                             </div>
                             <div className="form-group">
                                 <label htmlFor="v-phone">Mobile Number</label>
                                 <div className="input-wrap">
                                     <i className="fa-solid fa-phone"></i>
-                                    <input id="v-phone" name="phone" type="tel" className="form-input"
-                                        placeholder="+91 9876543210" required />
+                                    <input id="v-phone" name="Phone" type="tel" className="form-input"
+                                        placeholder="+91 9876543210"
+                                        value={bisuness.Phone}
+                                        onChange={handleinput}
+
+                                        required />
                                 </div>
                             </div>
                             <div className="form-group">
@@ -97,7 +158,11 @@ export default function VendorSignup() {
                                 <div className="input-wrap">
                                     <i className="fa-solid fa-lock"></i>
                                     <input id="v-pass" name="password" type="password" className="form-input"
-                                        placeholder="Create a strong password" required />
+                                        placeholder="Create a strong password"
+                                        value={bisuness.password}
+                                        onChange={handleinput}
+
+                                        required />
                                 </div>
                             </div>
                             <button type="submit" className="submit-btn" disabled={loading}>

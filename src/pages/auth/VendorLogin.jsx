@@ -15,27 +15,63 @@ import '../../styles/auth.css'
  */
 export default function VendorLogin() {
     const navigate = useNavigate()
+   
+    const [bisuness, setBisuness] = useState({
+        FullName: "",
+        BisunessName: "",  // Double-check this spelling matches your backend
+        Phone: "",
+        Email: "",
+        password: "",
+    })
+    
     const [loading, setLoading] = useState(false)
-    const [error, setError] = useState('')
-
+    const [error, setError] = useState("")
+  
+    const handleinput = (e) => {
+        const name = e.target.name
+        const value = e.target.value
+        setBisuness({
+            ...bisuness,
+            [name]: value,
+        })
+    }
+  
     const handleSubmit = async (e) => {
         e.preventDefault()
-        setLoading(true)
-        setError('')
-        // ── TODO: replace block below with real API call ──────────────────
-        // const { email, password } = Object.fromEntries(new FormData(e.target))
-        // const res = await fetch('/api/auth/vendor/login', {
-        //     method: 'POST',
-        //     headers: { 'Content-Type': 'application/json' },
-        //     body: JSON.stringify({ email, password }),
-        // })
-        // const data = await res.json()
-        // if (!res.ok) { setError(data.message); setLoading(false); return }
-        // localStorage.setItem('token', data.token)
-        // ─────────────────────────────────────────────────────────────────
-        setTimeout(() => navigate('/vendor-dashboard'), 600)
-    }
+        console.log("signup submitted")
 
+        try {
+            setLoading(true)
+            setError("")
+
+            console.log("Sending data:", bisuness)
+
+            const response = await fetch("http://localhost:5000/vendorlogin", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                credentials: "include",
+                body: JSON.stringify(bisuness),
+            })
+
+            const data = await response.json()
+            console.log("Response:", data)
+
+            if (response.ok) {
+                console.log("Signup Success", data)
+                navigate("/vendor-dashboard")
+            } else {
+                setError(data.message || "Signup failed")
+            }
+
+        } catch (err) {
+            console.log("Error:", err)
+            setError("Server error: " + err.message)
+        } finally {
+            setLoading(false)
+        }
+    } 
     return (
         <>
             <AnimatedBackground />
@@ -64,8 +100,12 @@ export default function VendorLogin() {
                                 <label htmlFor="v-email">Business Email</label>
                                 <div className="input-wrap">
                                     <i className="fa-regular fa-envelope"></i>
-                                    <input id="v-email" name="email" type="email" className="form-input"
-                                        placeholder="contact@mybusiness.com" required />
+                                    <input id="v-email" name="Email" type="Email" className="form-input"
+                                        placeholder="contact@mybusiness.com" 
+                                        value={bisuness.Email}
+                                        onChange={handleinput}
+                                        
+                                        required />
                                 </div>
                             </div>
                             <div className="form-group">
@@ -73,7 +113,11 @@ export default function VendorLogin() {
                                 <div className="input-wrap">
                                     <i className="fa-solid fa-lock"></i>
                                     <input id="v-pass" name="password" type="password" className="form-input"
-                                        placeholder="••••••••" required />
+                                        placeholder="••••••••" 
+                                        value={bisuness.password}
+                                        onChange={handleinput}
+                                        
+                                        required />
                                 </div>
                             </div>
                             <div className="forgot-row">

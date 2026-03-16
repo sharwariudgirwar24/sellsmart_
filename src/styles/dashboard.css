@@ -920,7 +920,14 @@
     display: flex;
     gap: .3rem;
     opacity: 0;
-    transition: opacity var(--tr);
+    transition: all var(--tr);
+    z-index: 10;
+}
+
+.item-act-btn:hover {
+    transform: scale(1.1);
+    background: #fff;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
 }
 
 .portfolio-item:hover .item-actions {

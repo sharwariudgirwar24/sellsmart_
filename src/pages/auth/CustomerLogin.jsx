@@ -15,13 +15,64 @@ import '../../styles/auth.css'
  */
 export default function CustomerLogin() {
     const navigate = useNavigate()
-    const [loading, setLoading] = useState(false)
-    const [error, setError] = useState('')
+    
+    const [user, setUser] = useState({
+    Email: "",
+    password: "",
+  })
 
-    const handleSubmit = async (e) => {
-        e.preventDefault()
-        setLoading(true)
-        setError('')
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState("")
+
+  // input handle
+  const handleinput = (e) => {
+    const name = e.target.name
+    const value = e.target.value
+
+    setUser({
+      ...user,
+      [name]: value,
+    })
+  }
+
+  // form submit
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    console.log("login submitted")
+
+    try {
+      setLoading(true)
+      setError("")
+
+      console.log(user)
+
+      const response = await fetch("http://localhost:5000/userlogin", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify(user),
+      })
+
+      const data = await response.json()
+
+      if (response.ok) {
+        console.log("Login Success", data)
+        navigate("/customer-dashboard")
+      } else {
+        setError(data.message || "Login failed")
+      }
+
+    } catch (err) {
+      console.log(err)
+      setError("Server error")
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  
         // ── TODO: replace block below with real API call ──────────────────
         // const { email, password } = Object.fromEntries(new FormData(e.target))
         // const res = await fetch('/api/auth/customer/login', {
@@ -33,8 +84,8 @@ export default function CustomerLogin() {
         // if (!res.ok) { setError(data.message); setLoading(false); return }
         // localStorage.setItem('token', data.token)
         // ─────────────────────────────────────────────────────────────────
-        setTimeout(() => navigate('/customer-dashboard'), 600)
-    }
+       
+    
 
     return (
         <>
@@ -64,8 +115,13 @@ export default function CustomerLogin() {
                                 <label htmlFor="c-email">Email Address</label>
                                 <div className="input-wrap">
                                     <i className="fa-regular fa-envelope"></i>
-                                    <input id="c-email" name="email" type="email" className="form-input"
-                                        placeholder="you@example.com" required />
+                                    <input id="c-email" name="Email" type="email" className="form-input"
+                                        placeholder="you@example.com" 
+                                        value={user.Email}
+                                        onChange={handleinput}
+                                        
+                                        
+                                        required />
                                 </div>
                             </div>
                             <div className="form-group">
@@ -73,7 +129,11 @@ export default function CustomerLogin() {
                                 <div className="input-wrap">
                                     <i className="fa-solid fa-lock"></i>
                                     <input id="c-pass" name="password" type="password" className="form-input"
-                                        placeholder="••••••••" required />
+                                        placeholder="••••••••" 
+                                        value={user.password}
+                                        onChange={handleinput}
+                                        
+                                        required />
                                 </div>
                             </div>
                             <div className="forgot-row">

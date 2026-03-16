@@ -16,11 +16,16 @@ const customerNavItems = [
     { section: 'saved', icon: 'fa-solid fa-bookmark', label: 'Saved' },
 ]
 
-export default function Sidebar({ role = 'business', activeSection, onNavigate, isOpen, onClose }) {
+export default function Sidebar({ role = 'business', activeSection, onNavigate, isOpen, onClose, user }) {
     const navigate = useNavigate()
     const navItems = role === 'business' ? businessNavItems : customerNavItems
-    const ownerName = role === 'business' ? 'Business Owner' : 'Customer'
-    const ownerInitial = role === 'business' ? 'B' : 'C'
+    
+    // Determine the dynamic custom name based on the logged-in user details
+    const dbName = user ? (role === 'business' ? user.BusinessName : user.FullName) : null;
+    const ownerName = dbName || (role === 'business' ? 'Business Owner' : 'Customer')
+    
+    // Determine avatar initials based on the custom name
+    const ownerInitial = dbName ? dbName.charAt(0).toUpperCase() : (role === 'business' ? 'B' : 'C')
     const ownerRole = role === 'business' ? 'Business Account' : 'Customer Account'
 
     return (
@@ -36,7 +41,7 @@ export default function Sidebar({ role = 'business', activeSection, onNavigate, 
                 </div>
 
                 {/* User info */}
-                <div className={role === 'business' ? 'sidebar-owner' : 'sb-user'}>
+                <div className={role === 'business' ? 'sidebar-owner' : 'sb-user'} onClick={() => { onNavigate('profile'); onClose(); }} style={{ cursor: 'pointer' }}>
                     <div className={role === 'business' ? 'owner-avatar' : 'u-avatar'}>{ownerInitial}</div>
                     <div className={role === 'business' ? 'owner-info' : ''}>
                         <div className={role === 'business' ? 'name' : 'u-name'}>{ownerName}</div>

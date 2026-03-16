@@ -149,7 +149,7 @@ export default function Landing() {
                             <span style={{ fontSize: '1.2rem' }}>SellSmart</span>
                         </Link>
                         <span className="footer-tagline">Connecting local businesses with nearby customers.</span>
-                        <div className="footer-copy">© 2026 SellSmart. All rights reserved.</div>
+                        <div className="footer-copy">2026 SellSmart</div>
                     </div>
                 </footer>
 

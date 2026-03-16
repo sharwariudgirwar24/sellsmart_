@@ -4,17 +4,10 @@ import Navbar from '../../components/shared/Navbar'
 import AnimatedBackground from '../../components/shared/AnimatedBackground'
 import '../../styles/auth.css'
 
-/**
- * VendorSignup – Standalone signup page for Business Owners.
- *
- * TODO: Connect to backend API
- *   Endpoint : POST /api/auth/vendor/register
- *   Payload  : { ownerName, businessName, email, phone, password }
- *   Response : { token, vendor }
- *   On success: store token → navigate('/vendor-dashboard')
- */
 export default function VendorSignup() {
     const navigate = useNavigate()
+    const [loading, setLoading] = useState(false)
+    const [error, setError] = useState("")
 
     const [bisuness, setBisuness] = useState({
         FullName: "",
@@ -24,31 +17,20 @@ export default function VendorSignup() {
         password: "",
     })
 
-
-    const [loading, setLoading] = useState(false)
-    const [error, setError] = useState("")
-
     const handleinput = (e) => {
         const name = e.target.name
         const value = e.target.value
-
         setBisuness({
             ...bisuness,
             [name]: value,
         })
     }
 
-    // input handle
     const handleSubmit = async (e) => {
         e.preventDefault()
-        console.log("form submitted")
-
         try {
             setLoading(true)
             setError("")
-
-            console.log(bisuness)
-
             const response = await fetch("http://localhost:5000/vendorsignup", {
                 method: "POST",
                 headers: {
@@ -57,29 +39,18 @@ export default function VendorSignup() {
                 credentials: "include",
                 body: JSON.stringify(bisuness),
             })
-
             const data = await response.json()
-
             if (response.ok) {
-                console.log("Signup Success", data)
                 navigate("/vendor-dashboard")
             } else {
-                setError("Signup failed")
+                setError(data.message || "Signup failed")
             }
-
         } catch (err) {
-            console.log(err)
             setError("Server error")
         } finally {
             setLoading(false)
         }
     }
-
-
-
-
-
-
 
     return (
         <>
@@ -113,19 +84,17 @@ export default function VendorSignup() {
                                         placeholder="Jane Doe"
                                         value={bisuness.FullName}
                                         onChange={handleinput}
-
                                         required />
                                 </div>
                             </div>
                             <div className="form-group">
-                                <label htmlFor="v-biz">Bisuness Name</label>
+                                <label htmlFor="v-biz">Business Name</label>
                                 <div className="input-wrap">
                                     <i className="fa-solid fa-store"></i>
                                     <input id="v-biz" name="BusinessName" type="text" className="form-input"
                                         placeholder="Jane's Boutique"
                                         value={bisuness.BusinessName}
                                         onChange={handleinput}
-
                                         required />
                                 </div>
                             </div>
@@ -137,7 +106,6 @@ export default function VendorSignup() {
                                         placeholder="contact@mybusiness.com"
                                         value={bisuness.Email}
                                         onChange={handleinput}
-
                                         required />
                                 </div>
                             </div>
@@ -149,7 +117,6 @@ export default function VendorSignup() {
                                         placeholder="+91 9876543210"
                                         value={bisuness.Phone}
                                         onChange={handleinput}
-
                                         required />
                                 </div>
                             </div>
@@ -161,7 +128,6 @@ export default function VendorSignup() {
                                         placeholder="Create a strong password"
                                         value={bisuness.password}
                                         onChange={handleinput}
-
                                         required />
                                 </div>
                             </div>
@@ -180,7 +146,7 @@ export default function VendorSignup() {
                     </div>
                 </div>
 
-                <p className="copyright">© 2026 SellSmart. All rights reserved.</p>
+                <p className="copyright">2026 SellSmart</p>
             </div>
         </>
     )

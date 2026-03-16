@@ -4,29 +4,15 @@ import Navbar from '../../components/shared/Navbar'
 import AnimatedBackground from '../../components/shared/AnimatedBackground'
 import '../../styles/auth.css'
 
-/**
- * VendorLogin – Standalone login page for Business Owners.
- *
- * TODO: Connect to backend API
- *   Endpoint : POST /api/auth/vendor/login
- *   Payload  : { email, password }
- *   Response : { token, vendor }
- *   On success: store token → navigate('/vendor-dashboard')
- */
 export default function VendorLogin() {
     const navigate = useNavigate()
-   
+    const [loading, setLoading] = useState(false)
+    const [error, setError] = useState("")
     const [bisuness, setBisuness] = useState({
-        FullName: "",
-        BisunessName: "",  // Double-check this spelling matches your backend
-        Phone: "",
         Email: "",
         password: "",
     })
-    
-    const [loading, setLoading] = useState(false)
-    const [error, setError] = useState("")
-  
+
     const handleinput = (e) => {
         const name = e.target.name
         const value = e.target.value
@@ -35,43 +21,33 @@ export default function VendorLogin() {
             [name]: value,
         })
     }
-  
+
     const handleSubmit = async (e) => {
         e.preventDefault()
-        console.log("signup submitted")
-
         try {
             setLoading(true)
             setError("")
-
-            console.log("Sending data:", bisuness)
-
             const response = await fetch("http://localhost:5000/vendorlogin", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
                 },
                 credentials: "include",
-                body: JSON.stringify(bisuness),
+                body: JSON.stringify({ Email: bisuness.Email, password: bisuness.password }),
             })
-
             const data = await response.json()
-            console.log("Response:", data)
-
             if (response.ok) {
-                console.log("Signup Success", data)
                 navigate("/vendor-dashboard")
             } else {
-                setError(data.message || "Signup failed")
+                setError(data.message || "Login failed")
             }
-
         } catch (err) {
-            console.log("Error:", err)
-            setError("Server error: " + err.message)
+            setError("Server error")
         } finally {
             setLoading(false)
         }
-    } 
+    }
+
     return (
         <>
             <AnimatedBackground />
@@ -100,11 +76,10 @@ export default function VendorLogin() {
                                 <label htmlFor="v-email">Business Email</label>
                                 <div className="input-wrap">
                                     <i className="fa-regular fa-envelope"></i>
-                                    <input id="v-email" name="Email" type="Email" className="form-input"
+                                    <input id="v-email" name="Email" type="email" className="form-input"
                                         placeholder="contact@mybusiness.com" 
                                         value={bisuness.Email}
                                         onChange={handleinput}
-                                        
                                         required />
                                 </div>
                             </div>
@@ -116,7 +91,6 @@ export default function VendorLogin() {
                                         placeholder="••••••••" 
                                         value={bisuness.password}
                                         onChange={handleinput}
-                                        
                                         required />
                                 </div>
                             </div>
@@ -135,7 +109,7 @@ export default function VendorLogin() {
                     </div>
                 </div>
 
-                <p className="copyright">© 2026 SellSmart. All rights reserved.</p>
+                <p className="copyright">2026 SellSmart</p>
             </div>
         </>
     )

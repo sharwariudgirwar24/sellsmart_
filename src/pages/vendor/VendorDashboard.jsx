@@ -6,24 +6,6 @@ import PostGallery from '../../components/vendor/PostGallery'
 import ChatBox from '../../components/shared/ChatSection'
 import '../../styles/dashboard.css'
 
-// ─── Sample Data (replace with API calls) ──────────────────────────────────
-// TODO: GET /api/vendor/posts
-const SAMPLE_POSTS = [
-    { id: 1, icon: '🧵', label: 'Photo', caption: 'Bridal Lehenga Set', price: '₹8,500' },
-    { id: 2, icon: '📸', label: 'Photo', caption: 'Silk Blouse Embroidery', price: '₹1,200' },
-    { id: 3, icon: '🎥', label: 'Video', caption: 'Stitching Process Reel', price: '₹600' },
-    { id: 4, icon: '👗', label: 'Photo', caption: 'Kids Party Wear', price: '₹2,000' },
-    { id: 5, icon: '🪡', label: 'Photo', caption: 'Heavy Work Saree Blouse', price: '₹3,500' },
-    { id: 6, icon: '✂️', label: 'Photo', caption: 'Casual Kurta – Cotton', price: '₹800' },
-]
-
-// TODO: GET /api/messages/threads
-const SAMPLE_THREADS = [
-    { id: 1, name: 'Ananya S.', preview: 'Hi! I need a blouse in 3 days', time: '2m', unread: 2, initials: 'AS', color: '#4f46e5' },
-    { id: 2, name: 'Rahul M.', preview: 'Can you do embroidery work?', time: '1h', unread: 0, initials: 'RM', color: '#7c3aed' },
-    { id: 3, name: 'Meera K.', preview: 'What are your charges?', time: '3h', unread: 1, initials: 'MK', color: '#9333ea' },
-]
-
 // ─── Overview Section ──────────────────────────────────────────────────────
 function Overview({ onNavigate, vendor }) {
     return (
@@ -39,9 +21,9 @@ function Overview({ onNavigate, vendor }) {
             <div className="section-heading"><i className="fa-solid fa-chart-bar"></i> Quick Stats</div>
             <div className="dash-stats">
                 {[
-                    { val: '124', lbl: 'Profile Views', delta: '+12% this week' },
-                    { val: '38', lbl: 'WhatsApp Contacts', delta: '+5 this week' },
-                    { val: '9', lbl: 'Posts Published', delta: '2 new' },
+                    { val: '0', lbl: 'Profile Views', delta: '+0% this week' },
+                    { val: '0', lbl: 'WhatsApp Contacts', delta: '+0 this week' },
+                    { val: vendor?.postsCount || '0', lbl: 'Posts Published', delta: 'Recently updated' },
                 ].map(({ val, lbl, delta }) => (
                     <div className="stat-card" key={lbl}>
                         <div className="stat-val">{val}</div>
@@ -133,19 +115,19 @@ function Profile({ vendor, setVendor }) {
                     <form onSubmit={handleSave} style={{maxWidth: '400px'}}>
                         <div className="form-group-d">
                             <label className="form-label">Business Name</label>
-                            <input className="form-input-d" value={vendor.BusinessName} onChange={(e) => setVendor({...vendor, BusinessName: e.target.value})} required />
+                            <input className="form-input-d" value={vendor.BusinessName || ''} onChange={(e) => setVendor({...vendor, BusinessName: e.target.value})} required />
                         </div>
                         <div className="form-group-d">
                             <label className="form-label">Owner Name</label>
-                            <input className="form-input-d" value={vendor.FullName} onChange={(e) => setVendor({...vendor, FullName: e.target.value})} required />
+                            <input className="form-input-d" value={vendor.FullName || ''} onChange={(e) => setVendor({...vendor, FullName: e.target.value})} required />
                         </div>
                         <div className="form-group-d">
                             <label className="form-label">Email</label>
-                            <input type="email" className="form-input-d" value={vendor.Email} onChange={(e) => setVendor({...vendor, Email: e.target.value})} required />
+                            <input type="email" className="form-input-d" value={vendor.Email || ''} onChange={(e) => setVendor({...vendor, Email: e.target.value})} required />
                         </div>
                         <div className="form-group-d">
                             <label className="form-label">Phone</label>
-                            <input type="tel" className="form-input-d" value={vendor.Phone} onChange={(e) => setVendor({...vendor, Phone: e.target.value})} required />
+                            <input type="tel" className="form-input-d" value={vendor.Phone || ''} onChange={(e) => setVendor({...vendor, Phone: e.target.value})} required />
                         </div>
                         <div style={{display: 'flex', gap: '10px', marginTop: '1rem'}}>
                             <button type="submit" className="btn-primary-d" disabled={loading}>
@@ -193,7 +175,6 @@ function UploadSection({ onDone, initialData }) {
                     label: data.product.category || 'Product',
                     caption: data.product.name,
                     price: `₹${data.product.price}`,
-                    // store raw data for future edits
                     raw: data.product
                 };
                 setTimeout(() => { setLoading(false); onDone(updatedPost, !!initialData) }, 500);
@@ -212,7 +193,7 @@ function UploadSection({ onDone, initialData }) {
     return (
         <div className="content">
             <div className="card">
-                <div className="section-heading"><i className="fa-solid fa-cloud-arrow-up"></i> {initialData ? 'Edit Your Work' : 'Post Your Work'}</div>
+                <div className="section-heading"><i className="fa-solid fa-cloud-arrow-up"></i> {initialData ? 'Edit Post' : 'Post Your Work'}</div>
                 <div className="upload-type-row">
                     {['image', 'video'].map((t) => (
                         <button key={t} type="button"
@@ -269,7 +250,7 @@ function UploadSection({ onDone, initialData }) {
                     </div>
                     <button type="submit" className="publish-btn" disabled={loading}>
                         <i className="fa-solid fa-paper-plane"></i>
-                        {loading ? (initialData ? 'Updating…' : 'Publishing…') : (initialData ? 'Update Post' : 'Publish Post')}
+                        {loading ? 'Processing…' : (initialData ? 'Update Post' : 'Publish Post')}
                     </button>
                 </form>
             </div>
@@ -293,36 +274,11 @@ function Settings({ vendor }) {
                     ].map(({ label, type, val, name }) => (
                         <div className="form-group-d" key={name}>
                             <label className="form-label">{label}</label>
-                            <input className="form-input-d" type={type} defaultValue={val} name={name} />
+                            <input className="form-input-d" type={type} defaultValue={val} name={name} readOnly />
                         </div>
                     ))}
                 </div>
-                {/* TODO: PUT /api/vendor/settings */}
-                <button className="publish-btn" style={{ marginTop: '1.2rem', marginBottom: '2rem' }}>
-                    <i className="fa-solid fa-floppy-disk"></i> Save Changes
-                </button>
-
-                <div className="section-heading" style={{ borderTop: '1px solid #333', paddingTop: '1.5rem', marginTop: '1rem' }}>
-                    <i className="fa-solid fa-sliders"></i> Preferences & More
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem', marginTop: '1rem' }}>
-                    <button className="btn-ghost-d" onClick={() => alert('Theme Settings panel coming soon!')} style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 16px', background: 'rgba(255,255,255,0.05)', borderRadius: '8px', border: 'none', color: '#fff', cursor: 'pointer', alignItems: 'center' }}>
-                        <span style={{ display: 'flex', alignItems: 'center', gap: '10px' }}><i className="fa-solid fa-palette" style={{ width: '20px' }}></i> Theme Settings</span>
-                        <i className="fa-solid fa-chevron-right" style={{ fontSize: '0.8rem', color: '#888' }}></i>
-                    </button>
-                    <button className="btn-ghost-d" onClick={() => alert('Security configuration is currently disabled.')} style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 16px', background: 'rgba(255,255,255,0.05)', borderRadius: '8px', border: 'none', color: '#fff', cursor: 'pointer', alignItems: 'center' }}>
-                        <span style={{ display: 'flex', alignItems: 'center', gap: '10px' }}><i className="fa-solid fa-shield-halved" style={{ width: '20px' }}></i> Security</span>
-                        <i className="fa-solid fa-chevron-right" style={{ fontSize: '0.8rem', color: '#888' }}></i>
-                    </button>
-                    <button className="btn-ghost-d" onClick={() => alert('No recent activity to log.')} style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 16px', background: 'rgba(255,255,255,0.05)', borderRadius: '8px', border: 'none', color: '#fff', cursor: 'pointer', alignItems: 'center' }}>
-                        <span style={{ display: 'flex', alignItems: 'center', gap: '10px' }}><i className="fa-solid fa-clock-rotate-left" style={{ width: '20px' }}></i> Activity Log</span>
-                        <i className="fa-solid fa-chevron-right" style={{ fontSize: '0.8rem', color: '#888' }}></i>
-                    </button>
-                    <button className="btn-ghost-d" onClick={() => alert('Adding secondary accounts requires Premium.')} style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 16px', background: 'rgba(255,255,255,0.05)', borderRadius: '8px', border: 'none', color: '#fff', cursor: 'pointer', alignItems: 'center', marginTop: '0.5rem' }}>
-                        <span style={{ display: 'flex', alignItems: 'center', gap: '10px' }}><i className="fa-solid fa-user-plus" style={{ width: '20px' }}></i> Add Another Account</span>
-                        <i className="fa-solid fa-plus" style={{ fontSize: '0.8rem', color: '#888' }}></i>
-                    </button>
-                </div>
+                <p style={{marginTop: '1rem', fontSize: '0.8rem', color: '#888'}}>Note: Profile details can be changed in the 'Edit Profile' section.</p>
             </div>
         </div>
     )
@@ -345,7 +301,7 @@ export default function VendorDashboard() {
     const [sidebarOpen, setSidebarOpen] = useState(false)
     const [vendor, setVendor] = useState({ FullName: '', BusinessName: '', Email: '', Phone: '' })
     const navigate = useNavigate()
-    const [posts, setPosts] = useState(SAMPLE_POSTS)
+    const [posts, setPosts] = useState([])
     const [editingPost, setEditingPost] = useState(null)
 
     const handleNavigate = (newSection) => {
@@ -359,7 +315,7 @@ export default function VendorDashboard() {
     const handleBack = () => {
         if (history.length > 1) {
             const newHistory = [...history];
-            newHistory.pop(); // Remove current
+            newHistory.pop();
             const prev = newHistory[newHistory.length - 1];
             setHistory(newHistory);
             setSection(prev);
@@ -385,7 +341,6 @@ export default function VendorDashboard() {
                 const res = await fetch("http://localhost:5000/vendor/posts", { credentials: "include" });
                 if (res.ok) {
                     const data = await res.json();
-                    // map database products to frontend post format
                     const formattedPosts = data.products.map(p => ({
                         id: p._id,
                         icon: p.images && p.images.length > 0 ? (
@@ -397,14 +352,8 @@ export default function VendorDashboard() {
                         raw: p,
                     }));
                     setPosts(formattedPosts);
-                } else {
-                    // If not authorized or internal error, clear samples so user isn't misled
-                    setPosts([]);
                 }
-            } catch (e) {
-                console.log("Fetch Posts Error:", e);
-                setPosts([]);
-            }
+            } catch (e) { console.log(e) }
         }
         
         fetchVendorDetails();
@@ -443,14 +392,11 @@ export default function VendorDashboard() {
                                                     const errData = await res.json();
                                                     alert(`Delete failed: ${errData.message || 'Unknown error'}`);
                                                 }
-                                            } catch (err) {
-                                                console.error(err);
-                                                alert("Error connecting to server for deletion.");
-                                            }
+                                            } catch (err) { alert("Error connecting to server"); }
                                         }
                                     }} 
                                   />
-            case 'messages': return <ChatBox threads={SAMPLE_THREADS} avatarKey="initials" />
+            case 'messages': return <ChatBox threads={[]} avatarKey="initials" />
             case 'settings': return <Settings vendor={vendor} />
             default: return <Overview onNavigate={handleNavigate} vendor={vendor} />
         }

@@ -4,77 +4,53 @@ import Navbar from '../../components/shared/Navbar'
 import AnimatedBackground from '../../components/shared/AnimatedBackground'
 import '../../styles/auth.css'
 
-/**
- * CustomerSignup – Standalone signup page for Customers.
- *
- * TODO: Connect to backend API
- *   Endpoint : POST /api/auth/customer/register
- *   Payload  : { name, email, phone, password }
- *   Response : { token, user }
- *   On success: store token → navigate('/customer-dashboard')
- */
 export default function CustomerSignup() {
-
     const navigate = useNavigate()
-  
-    const [user, setUser] = useState({
-      FullName: "",
-      Email: "",
-      Phone: "",
-      password: "",
-    })
-  
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState("")
-  
-    // input handle
+    const [user, setUser] = useState({
+        FullName: "",
+        Email: "",
+        Phone: "",
+        password: "",
+    })
+
     const handleinput = (e) => {
-      const name = e.target.name
-      const value = e.target.value
-  
-      setUser({
-        ...user,
-        [name]: value,
-      })
-    }
-  
-    // form submit
-    const handleSubmit = async (e) => {
-      e.preventDefault()
-       console.log("form submitted")
-      try {
-        setLoading(true)
-        setError("")
-  
-        console.log(user)
-  
-        const response = await fetch("http://localhost:5000/usersignup", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          credentials: "include",
-          body: JSON.stringify(user),
+        const name = e.target.name
+        const value = e.target.value
+        setUser({
+            ...user,
+            [name]: value,
         })
-  
-        const data = await response.json()
-  
-        if (response.ok) {
-          console.log("Signup Success", data)
-          navigate("/customer-dashboard")
-        } else {
-          setError("Signup failed")
-        }
-  
-      } catch (err) {
-        console.log(err)
-        setError("Server error")
-      } finally {
-        setLoading(false)
-      }
     }
-  
-     return (
+
+    const handleSubmit = async (e) => {
+        e.preventDefault()
+        try {
+            setLoading(true)
+            setError("")
+            const response = await fetch("http://localhost:5000/usersignup", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                credentials: "include",
+                body: JSON.stringify(user),
+            })
+            const data = await response.json()
+            if (response.ok) {
+                navigate("/customer-dashboard")
+            } else {
+                setError(data.message || "Signup failed")
+            }
+        } catch (err) {
+            setError("Server error")
+        } finally {
+            setLoading(false)
+        }
+    }
+
+    return (
         <>
             <AnimatedBackground />
             <Navbar />
@@ -106,8 +82,7 @@ export default function CustomerSignup() {
                                         placeholder="John Smith" 
                                         value={user.FullName}
                                         onChange={handleinput}
-            
-                                required />
+                                        required />
                                 </div>
                             </div>
                             <div className="form-group">
@@ -118,7 +93,6 @@ export default function CustomerSignup() {
                                         placeholder="you@example.com" 
                                         value={user.Email}
                                         onChange={handleinput}
-            
                                         required />
                                 </div>
                             </div>
@@ -130,7 +104,6 @@ export default function CustomerSignup() {
                                         placeholder="+91 9876543210" 
                                         value={user.Phone}
                                         onChange={handleinput}
-            
                                         required />
                                 </div>
                             </div>
@@ -142,7 +115,6 @@ export default function CustomerSignup() {
                                         placeholder="Create a strong password"
                                         value={user.password}
                                         onChange={handleinput}
-            
                                         required />
                                 </div>
                             </div>
@@ -161,7 +133,7 @@ export default function CustomerSignup() {
                     </div>
                 </div>
 
-                <p className="copyright">© 2026 SellSmart. All rights reserved.</p>
+                <p className="copyright">2026 SellSmart</p>
             </div>
         </>
     )

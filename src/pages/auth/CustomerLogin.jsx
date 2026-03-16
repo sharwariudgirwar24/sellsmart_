@@ -4,88 +4,49 @@ import Navbar from '../../components/shared/Navbar'
 import AnimatedBackground from '../../components/shared/AnimatedBackground'
 import '../../styles/auth.css'
 
-/**
- * CustomerLogin – Standalone login page for Customers.
- *
- * TODO: Connect to backend API
- *   Endpoint : POST /api/auth/customer/login
- *   Payload  : { email, password }
- *   Response : { token, user }
- *   On success: store token → navigate('/customer-dashboard')
- */
 export default function CustomerLogin() {
     const navigate = useNavigate()
-    
+    const [loading, setLoading] = useState(false)
+    const [error, setError] = useState("")
     const [user, setUser] = useState({
-    Email: "",
-    password: "",
-  })
-
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState("")
-
-  // input handle
-  const handleinput = (e) => {
-    const name = e.target.name
-    const value = e.target.value
-
-    setUser({
-      ...user,
-      [name]: value,
+        Email: "",
+        password: "",
     })
-  }
 
-  // form submit
-  const handleSubmit = async (e) => {
-    e.preventDefault()
-    console.log("login submitted")
-
-    try {
-      setLoading(true)
-      setError("")
-
-      console.log(user)
-
-      const response = await fetch("http://localhost:5000/userlogin", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        credentials: "include",
-        body: JSON.stringify(user),
-      })
-
-      const data = await response.json()
-
-      if (response.ok) {
-        console.log("Login Success", data)
-        navigate("/customer-dashboard")
-      } else {
-        setError(data.message || "Login failed")
-      }
-
-    } catch (err) {
-      console.log(err)
-      setError("Server error")
-    } finally {
-      setLoading(false)
+    const handleinput = (e) => {
+        const name = e.target.name
+        const value = e.target.value
+        setUser({
+            ...user,
+            [name]: value,
+        })
     }
-  }
 
-  
-        // ── TODO: replace block below with real API call ──────────────────
-        // const { email, password } = Object.fromEntries(new FormData(e.target))
-        // const res = await fetch('/api/auth/customer/login', {
-        //     method: 'POST',
-        //     headers: { 'Content-Type': 'application/json' },
-        //     body: JSON.stringify({ email, password }),
-        // })
-        // const data = await res.json()
-        // if (!res.ok) { setError(data.message); setLoading(false); return }
-        // localStorage.setItem('token', data.token)
-        // ─────────────────────────────────────────────────────────────────
-       
-    
+    const handleSubmit = async (e) => {
+        e.preventDefault()
+        try {
+            setLoading(true)
+            setError("")
+            const response = await fetch("http://localhost:5000/userlogin", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                credentials: "include",
+                body: JSON.stringify(user),
+            })
+            const data = await response.json()
+            if (response.ok) {
+                navigate("/customer-dashboard")
+            } else {
+                setError(data.message || "Login failed")
+            }
+        } catch (err) {
+            setError("Server error")
+        } finally {
+            setLoading(false)
+        }
+    }
 
     return (
         <>
@@ -119,8 +80,6 @@ export default function CustomerLogin() {
                                         placeholder="you@example.com" 
                                         value={user.Email}
                                         onChange={handleinput}
-                                        
-                                        
                                         required />
                                 </div>
                             </div>
@@ -132,7 +91,6 @@ export default function CustomerLogin() {
                                         placeholder="••••••••" 
                                         value={user.password}
                                         onChange={handleinput}
-                                        
                                         required />
                                 </div>
                             </div>
@@ -151,7 +109,7 @@ export default function CustomerLogin() {
                     </div>
                 </div>
 
-                <p className="copyright">© 2026 SellSmart. All rights reserved.</p>
+                <p className="copyright">2026 SellSmart</p>
             </div>
         </>
     )

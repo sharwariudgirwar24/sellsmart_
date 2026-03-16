@@ -1,31 +1,39 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useAppData } from '../../context/AppDataContext'
 
-export default function Topbar({ title, subtitle, role = 'business', onMenuClick }) {
+export default function Topbar({ title, subtitle, role = 'business', onMenuClick, user, onAvatarClick, onBack }) {
     const navigate = useNavigate()
-    const { currentUser, notifications, markNotificationsRead, logout } = useAppData()
-    const [showNotif, setShowNotif] = useState(false)
-    const [showProfile, setShowProfile] = useState(false)
+    
+    const dbName = user ? (role === 'business' ? user.BusinessName : user.FullName) : null;
+    const initial = dbName ? dbName.charAt(0).toUpperCase() : (role === 'business' ? 'B' : 'C');
 
-    const unreadCount = notifications?.filter(n => !n.read).length || 0
+    const [showSearch, setShowSearch] = useState(false);
+    const [showNotif, setShowNotif] = useState(false);
+    const [showProfile, setShowProfile] = useState(false);
+    const [searchQuery, setSearchQuery] = useState('');
+
+    const toggleSearch = () => {
+        setShowSearch(!showSearch);
+        setShowNotif(false);
+        setShowProfile(false);
+    }
 
     const toggleNotif = () => {
-        setShowNotif(!showNotif)
-        setShowProfile(false)
-        if (!showNotif && unreadCount > 0) {
-            markNotificationsRead()
-        }
+        setShowNotif(!showNotif);
+        setShowSearch(false);
+        setShowProfile(false);
     }
 
     const toggleProfile = () => {
-        setShowProfile(!showProfile)
-        setShowNotif(false)
+        setShowProfile(!showProfile);
+        setShowSearch(false);
+        setShowNotif(false);
     }
 
-    const handleLogout = () => {
-        logout()
-        navigate('/')
+    const handleSearchSubmit = (e) => {
+        e.preventDefault();
+        alert(`Searching for: ${searchQuery}`);
+        setShowSearch(false);
     }
 
     return (
@@ -36,7 +44,7 @@ export default function Topbar({ title, subtitle, role = 'business', onMenuClick
             </button>
 
             {/* Back button */}
-            <button className="icon-btn" title="Go back" onClick={() => navigate(-1)} style={{ flexShrink: 0 }}>
+            <button className="icon-btn" title="Go back" onClick={onBack || (() => navigate(-1))} style={{ flexShrink: 0 }}>
                 <i className="fa-solid fa-arrow-left"></i>
             </button>
 
@@ -45,9 +53,9 @@ export default function Topbar({ title, subtitle, role = 'business', onMenuClick
                 {subtitle && <span>{subtitle}</span>}
             </div>
 
-            <div className={role === 'business' ? 'topbar-actions' : 'tb-actions'}>
-                {/* Search - handled within pages mostly, can trigger global modal if desired */}
-                <button className="icon-btn" title="Search">
+            <div className={role === 'business' ? 'topbar-actions' : 'tb-actions'} style={{ position: 'relative' }}>
+                {/* Search */}
+                <button className="icon-btn" title="Search" onClick={toggleSearch}>
                     <i className="fa-solid fa-magnifying-glass"></i>
                 </button>
 
@@ -55,24 +63,14 @@ export default function Topbar({ title, subtitle, role = 'business', onMenuClick
                 <div style={{ position: 'relative' }}>
                     <button className="icon-btn" title="Notifications" onClick={toggleNotif}>
                         <i className="fa-solid fa-bell"></i>
-                        {unreadCount > 0 && <span className="notif-dot"></span>}
+                        <span className="notif-dot"></span>
                     </button>
                     {showNotif && (
                         <div className="dropdown-menu notif-menu">
                             <div className="dropdown-header">Notifications</div>
-                            {notifications?.length === 0 ? (
-                                <div className="dropdown-item" style={{ textAlign: 'center', color: 'var(--muted)' }}>No recent notifications</div>
-                            ) : (
-                                notifications?.map(n => (
-                                    <div key={n.id} className="dropdown-item notif-item">
-                                        <div className={`notif-icon ${n.type}`}><i className={`fa-solid ${n.type === 'success' ? 'fa-check' : 'fa-info'}`}></i></div>
-                                        <div>
-                                            <div style={{ fontSize: '.85rem', fontWeight: 600 }}>{n.title}</div>
-                                            <div style={{ fontSize: '.7rem', color: 'var(--muted)' }}>{n.time}</div>
-                                        </div>
-                                    </div>
-                                ))
-                            )}
+                            <div className="dropdown-item" style={{ textAlign: 'center', color: 'var(--muted)', fontSize: '0.85rem' }}>
+                                No new notifications right now.
+                            </div>
                         </div>
                     )}
                 </div>
@@ -80,23 +78,33 @@ export default function Topbar({ title, subtitle, role = 'business', onMenuClick
                 {/* Profile */}
                 <div style={{ position: 'relative' }}>
                     <div className={role === 'business' ? 'topbar-avatar' : 'tb-avatar'} onClick={toggleProfile} style={{ cursor: 'pointer' }}>
-                        {currentUser?.name?.charAt(0) || currentUser?.ownerName?.charAt(0) || (role === 'business' ? 'B' : 'C')}
+                        {initial}
                     </div>
                     {showProfile && (
                         <div className="dropdown-menu profile-menu">
-                            <div className="dropdown-header">{currentUser?.name || currentUser?.ownerName || 'User'}</div>
-                            <button className="dropdown-item" onClick={() => navigate(`/${role}-dashboard`)}><i className="fa-solid fa-user"></i> Dashboard</button>
+                            <div className="dropdown-header">{dbName || (role === 'business' ? 'Business' : 'Customer')}</div>
+                            <button className="dropdown-item" onClick={onAvatarClick}><i className="fa-solid fa-user"></i> Profile</button>
                             <div style={{ borderTop: '1px solid rgba(255,255,255,0.1)', margin: '0.5rem 0' }}></div>
-                            <button className="dropdown-item text-error" onClick={handleLogout}><i className="fa-solid fa-right-from-bracket"></i> Logout</button>
+                            <button className="dropdown-item text-error" onClick={() => navigate('/role-select')}><i className="fa-solid fa-right-from-bracket"></i> Logout</button>
                         </div>
                     )}
                 </div>
+
+                {/* Search Overlay */}
+                {showSearch && (
+                    <div style={{ position: 'absolute', top: '120%', right: '0', background: 'rgba(30, 41, 59, 0.95)', backdropFilter: 'blur(10px)', padding: '10px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.1)', boxShadow: '0 10px 25px rgba(0,0,0,0.5)', zIndex: 100, minWidth: '250px' }}>
+                        <form onSubmit={handleSearchSubmit} style={{ display: 'flex', gap: '5px' }}>
+                            <input type="text" placeholder="Search..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} style={{ flex: 1, padding: '8px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '6px', color: 'white', outline: 'none' }} autoFocus />
+                            <button type="submit" style={{ padding: '8px 12px', background: 'var(--indigo-lt)', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>Go</button>
+                        </form>
+                    </div>
+                )}
             </div>
 
             <style>{`
                 .dropdown-menu {
                     position: absolute;
-                    top: 120%;
+                    top: 130%;
                     right: 0;
                     background: rgba(30, 41, 59, 0.95);
                     backdrop-filter: blur(10px);
@@ -108,12 +116,13 @@ export default function Topbar({ title, subtitle, role = 'business', onMenuClick
                     box-shadow: 0 10px 25px rgba(0,0,0,0.5);
                     animation: slideDown 0.2s ease;
                 }
-                .notif-menu { width: 300px; }
-                .profile-menu { width: 200px; }
+                .notif-menu { width: 280px; }
+                .profile-menu { width: 180px; }
                 .dropdown-header {
                     padding: 0.5rem 0.75rem;
                     font-weight: 600;
-                    font-size: 0.9rem;
+                    font-size: 0.85rem;
+                    color: var(--muted);
                     border-bottom: 1px solid rgba(255,255,255,0.1);
                     margin-bottom: 0.5rem;
                 }
@@ -127,7 +136,7 @@ export default function Topbar({ title, subtitle, role = 'business', onMenuClick
                     transition: all 0.2s;
                     border: none;
                     background: transparent;
-                    color: var(--light);
+                    color: white;
                     font-family: inherit;
                     width: 100%;
                     text-align: left;
@@ -137,18 +146,6 @@ export default function Topbar({ title, subtitle, role = 'business', onMenuClick
                     background: rgba(255,255,255,0.05);
                 }
                 .text-error { color: var(--error) !important; }
-                .notif-item { align-items: flex-start; }
-                .notif-icon {
-                    width: 32px;
-                    height: 32px;
-                    border-radius: 50%;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    flex-shrink: 0;
-                }
-                .notif-icon.info { background: rgba(59, 130, 246, 0.1); color: #3b82f6; }
-                .notif-icon.success { background: rgba(34, 197, 94, 0.1); color: #22c55e; }
                 @keyframes slideDown {
                     from { opacity: 0; transform: translateY(-10px); }
                     to { opacity: 1; transform: translateY(0); }

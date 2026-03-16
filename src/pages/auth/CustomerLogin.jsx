@@ -2,32 +2,48 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import Navbar from '../../components/shared/Navbar'
 import AnimatedBackground from '../../components/shared/AnimatedBackground'
-import { useAppData } from '../../context/AppDataContext'
 import '../../styles/auth.css'
 
 export default function CustomerLogin() {
     const navigate = useNavigate()
-    const { login } = useAppData()
     const [loading, setLoading] = useState(false)
-    const [error, setError] = useState('')
+    const [error, setError] = useState("")
+    const [user, setUser] = useState({
+        Email: "",
+        password: "",
+    })
+
+    const handleinput = (e) => {
+        const name = e.target.name
+        const value = e.target.value
+        setUser({
+            ...user,
+            [name]: value,
+        })
+    }
 
     const handleSubmit = async (e) => {
         e.preventDefault()
-        setLoading(true)
-        setError('')
-
-        const { email, password } = Object.fromEntries(new FormData(e.target))
-
         try {
-            const res = login(email, password, 'customer')
-            if (res.success) {
-                setTimeout(() => navigate('/customer-dashboard'), 600)
+            setLoading(true)
+            setError("")
+            const response = await fetch("http://localhost:5000/userlogin", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                credentials: "include",
+                body: JSON.stringify(user),
+            })
+            const data = await response.json()
+            if (response.ok) {
+                navigate("/customer-dashboard")
             } else {
-                setError(res.error || 'Login failed')
-                setLoading(false)
+                setError(data.message || "Login failed")
             }
         } catch (err) {
-            setError('An error occurred during login.')
+            setError("Server error")
+        } finally {
             setLoading(false)
         }
     }
@@ -60,8 +76,11 @@ export default function CustomerLogin() {
                                 <label htmlFor="c-email">Email Address</label>
                                 <div className="input-wrap">
                                     <i className="fa-regular fa-envelope"></i>
-                                    <input id="c-email" name="email" type="email" className="form-input"
-                                        placeholder="you@example.com" required />
+                                    <input id="c-email" name="Email" type="email" className="form-input"
+                                        placeholder="you@example.com" 
+                                        value={user.Email}
+                                        onChange={handleinput}
+                                        required />
                                 </div>
                             </div>
                             <div className="form-group">
@@ -69,7 +88,10 @@ export default function CustomerLogin() {
                                 <div className="input-wrap">
                                     <i className="fa-solid fa-lock"></i>
                                     <input id="c-pass" name="password" type="password" className="form-input"
-                                        placeholder="••••••••" required />
+                                        placeholder="••••••••" 
+                                        value={user.password}
+                                        onChange={handleinput}
+                                        required />
                                 </div>
                             </div>
                             <div className="forgot-row">

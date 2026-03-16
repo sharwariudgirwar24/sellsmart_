@@ -75,7 +75,6 @@ function Explore({ vendors, onChatClick }) {
                 </div>
                 <div className="biz-grid">
                     {filtered.map((b, i) => {
-                        // Map vendor structure to expected business card structure
                         const mappedBiz = {
                             id: b.id,
                             icon: b.businessName?.charAt(0),
@@ -100,29 +99,81 @@ function Explore({ vendors, onChatClick }) {
 }
 
 // ─── Customer Profile Section ─────────────────────────────────────────────────
-function Profile({ currentUser }) {
+function Profile({ user, setUser }) {
+    const [isEditing, setIsEditing] = useState(false)
+    const [loading, setLoading] = useState(false)
+    const [message, setMessage] = useState('')
+
+    const handleSave = async (e) => {
+        e.preventDefault();
+        setLoading(true);
+        try {
+            const res = await fetch("http://localhost:5000/me/update", {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                credentials: "include",
+                body: JSON.stringify(user)
+            });
+            if (res.ok) {
+                const data = await res.json();
+                setUser(data.user);
+                setIsEditing(false);
+                setMessage("Profile updated successfully!");
+                setTimeout(() => setMessage(''), 3000);
+            } else {
+                setMessage("Failed to update");
+            }
+        } catch(err) {
+            setMessage("Server error");
+        } finally {
+            setLoading(false);
+        }
+    }
+
     return (
         <div className="content">
             <div className="card">
                 <div className="sec-head"><i className="fa-solid fa-user"></i> My Profile</div>
-                <div className="profile-hero-c">
-                    <div className="p-avatar">
-                        {currentUser?.name?.charAt(0) || 'C'}
-                        <div className="p-cam"><i className="fa-solid fa-camera"></i></div>
-                    </div>
-                    <div>
-                        <div className="p-name">{currentUser?.name || 'Customer Name'}</div>
-                        <div className="p-meta">{currentUser?.email} · {currentUser?.phone}</div>
-                        <div className="p-meta" style={{ marginTop: '.3rem' }}>
-                            <i className="fa-solid fa-location-dot" style={{ color: 'var(--indigo-lt)', marginRight: '.3rem' }}></i>
-                            Pune, Maharashtra
+                {message && <p style={{color: 'green', marginBottom: '1rem'}}>{message}</p>}
+                
+                {!isEditing ? (
+                    <div className="profile-hero-c">
+                        <div className="p-avatar">
+                            {user.FullName ? user.FullName.charAt(0).toUpperCase() : 'U'}
+                            <div className="p-cam"><i className="fa-solid fa-camera"></i></div>
                         </div>
-                        <div className="p-actions">
-                            <button className="btn-primary-d"><i className="fa-solid fa-pen"></i> Edit Profile</button>
-                            <button className="btn-ghost-d"><i className="fa-solid fa-share-nodes"></i> Share</button>
+                        <div>
+                            <div className="p-name">{user.FullName || "User Name"}</div>
+                            <div className="p-meta">{user.Email || "email@example.com"} · {user.Phone || "0000000000"}</div>
+                            <div className="p-actions" style={{marginTop: '1rem'}}>
+                                <button className="btn-primary-d" onClick={() => setIsEditing(true)}>
+                                    <i className="fa-solid fa-pen"></i> Edit Profile
+                                </button>
+                            </div>
                         </div>
                     </div>
-                </div>
+                ) : (
+                    <form onSubmit={handleSave} style={{maxWidth: '400px'}}>
+                        <div className="form-group-d">
+                            <label className="form-label">Full Name</label>
+                            <input className="form-input-d" value={user.FullName || ''} onChange={(e) => setUser({...user, FullName: e.target.value})} required />
+                        </div>
+                        <div className="form-group-d">
+                            <label className="form-label">Email</label>
+                            <input type="email" className="form-input-d" value={user.Email || ''} onChange={(e) => setUser({...user, Email: e.target.value})} required />
+                        </div>
+                        <div className="form-group-d">
+                            <label className="form-label">Phone</label>
+                            <input type="tel" className="form-input-d" value={user.Phone || ''} onChange={(e) => setUser({...user, Phone: e.target.value})} required />
+                        </div>
+                        <div style={{display: 'flex', gap: '10px', marginTop: '1rem'}}>
+                            <button type="submit" className="btn-primary-d" disabled={loading}>
+                                {loading ? 'Saving...' : 'Save Changes'}
+                            </button>
+                            <button type="button" className="btn-ghost-d" onClick={() => setIsEditing(false)}>Cancel</button>
+                        </div>
+                    </form>
+                )}
             </div>
         </div>
     )
@@ -138,37 +189,60 @@ const TITLES = {
 
 // ─── CustomerDashboard (main export) ─────────────────────────────────────────
 export default function CustomerDashboard() {
-    const { currentUser, vendors, threads, createThread } = useAppData()
+    const { vendors, threads, createThread } = useAppData()
     const navigate = useNavigate()
 
-    // Redirect if not logged in
-    useEffect(() => {
-        if (!currentUser || currentUser.role !== 'customer') {
-            navigate('/customer-login')
-        }
-    }, [currentUser, navigate])
-
     const [section, setSection] = useState('explore')
+    const [history, setHistory] = useState(['explore'])
     const [sidebarOpen, setSidebarOpen] = useState(false)
+    const [user, setUser] = useState({ FullName: '', Email: '', Phone: '' })
 
-    if (!currentUser) return null
+    const handleNavigate = (newSection) => {
+        if (newSection !== section) {
+            setHistory(prev => [...prev, newSection]);
+            setSection(newSection);
+        }
+    };
 
-    const customerThreads = threads.filter(t => t.customerId === currentUser.id)
+    const handleBack = () => {
+        if (history.length > 1) {
+            const newHistory = [...history];
+            newHistory.pop();
+            const prev = newHistory[newHistory.length - 1];
+            setHistory(newHistory);
+            setSection(prev);
+        } else {
+            navigate('/role-select');
+        }
+    };
+
+    useEffect(() => {
+        const fetchUserDetails = async () => {
+            try {
+                const res = await fetch("http://localhost:5000/me", { credentials: "include" });
+                if (res.ok) {
+                    const data = await res.json();
+                    setUser(data.user);
+                } else {
+                    navigate('/customer-login');
+                }
+            } catch(e) { console.log(e) }
+        }
+        fetchUserDetails();
+    }, [navigate])
 
     const handleChatClick = (vendorId, vendorName) => {
-        let existingThread = customerThreads.find(t => t.vendorId === vendorId)
-        if (!existingThread) {
-            createThread(vendorId, currentUser.id, vendorName)
-        }
-        setSection('messages')
+        // Mocking thread creation for now since we're using mock vendors from context
+        alert(`Starting chat with ${vendorName}. (Mock feature bridged with AppData)`);
+        setSection('messages');
     }
 
     const renderSection = () => {
         switch (section) {
             case 'explore': return <Explore vendors={vendors} onChatClick={handleChatClick} />
-            case 'profile': return <Profile currentUser={currentUser} />
-            case 'messages': return <ChatBox threads={customerThreads} avatarKey="initials" />
-            case 'saved': return <div className="content"><p>You don't have any saved businesses yet.</p></div>
+            case 'profile': return <Profile user={user} setUser={setUser} />
+            case 'messages': return <ChatBox threads={[]} avatarKey="initials" />
+            case 'saved': return <div className="content"><p>Saved Businesses coming soon!</p></div>
             default: return <Explore vendors={vendors} onChatClick={handleChatClick} />
         }
     }
@@ -178,16 +252,20 @@ export default function CustomerDashboard() {
             <Sidebar
                 role="customer"
                 activeSection={section}
-                onNavigate={setSection}
+                onNavigate={handleNavigate}
                 isOpen={sidebarOpen}
                 onClose={() => setSidebarOpen(false)}
+                user={user}
             />
             <div className="main">
                 <Topbar
                     title={TITLES[section]}
-                    subtitle="· SellSmart"
+                    subtitle={user.FullName ? `Hi, ${user.FullName} · SellSmart` : "· SellSmart"}
                     role="customer"
                     onMenuClick={() => setSidebarOpen(true)}
+                    user={user}
+                    onAvatarClick={() => handleNavigate('profile')}
+                    onBack={handleBack}
                 />
                 {renderSection()}
             </div>

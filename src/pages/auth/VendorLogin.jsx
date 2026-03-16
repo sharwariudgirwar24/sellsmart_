@@ -2,35 +2,48 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import Navbar from '../../components/shared/Navbar'
 import AnimatedBackground from '../../components/shared/AnimatedBackground'
-import { useAppData } from '../../context/AppDataContext'
 import '../../styles/auth.css'
 
 export default function VendorLogin() {
     const navigate = useNavigate()
-    const { login } = useAppData()
     const [loading, setLoading] = useState(false)
-    const [error, setError] = useState('')
+    const [error, setError] = useState("")
+    const [bisuness, setBisuness] = useState({
+        Email: "",
+        password: "",
+    })
+
+    const handleinput = (e) => {
+        const name = e.target.name
+        const value = e.target.value
+        setBisuness({
+            ...bisuness,
+            [name]: value,
+        })
+    }
 
     const handleSubmit = async (e) => {
         e.preventDefault()
-        setLoading(true)
-        setError('')
-
-        const { email, password } = Object.fromEntries(new FormData(e.target))
-
         try {
-            const res = login(email, password, 'vendor')
-            if (res.success) {
-                const namePart = email.split('@')[0]
-                const capitalizedName = namePart.charAt(0).toUpperCase() + namePart.slice(1)
-                localStorage.setItem('vendorName', capitalizedName)
-                setTimeout(() => navigate('/vendor-dashboard'), 600)
+            setLoading(true)
+            setError("")
+            const response = await fetch("http://localhost:5000/vendorlogin", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                credentials: "include",
+                body: JSON.stringify({ Email: bisuness.Email, password: bisuness.password }),
+            })
+            const data = await response.json()
+            if (response.ok) {
+                navigate("/vendor-dashboard")
             } else {
-                setError(res.error || 'Login failed')
-                setLoading(false)
+                setError(data.message || "Login failed")
             }
         } catch (err) {
-            setError('An error occurred during login.')
+            setError("Server error")
+        } finally {
             setLoading(false)
         }
     }
@@ -63,8 +76,11 @@ export default function VendorLogin() {
                                 <label htmlFor="v-email">Business Email</label>
                                 <div className="input-wrap">
                                     <i className="fa-regular fa-envelope"></i>
-                                    <input id="v-email" name="email" type="email" className="form-input"
-                                        placeholder="contact@mybusiness.com" required />
+                                    <input id="v-email" name="Email" type="email" className="form-input"
+                                        placeholder="contact@mybusiness.com" 
+                                        value={bisuness.Email}
+                                        onChange={handleinput}
+                                        required />
                                 </div>
                             </div>
                             <div className="form-group">
@@ -72,7 +88,10 @@ export default function VendorLogin() {
                                 <div className="input-wrap">
                                     <i className="fa-solid fa-lock"></i>
                                     <input id="v-pass" name="password" type="password" className="form-input"
-                                        placeholder="••••••••" required />
+                                        placeholder="••••••••" 
+                                        value={bisuness.password}
+                                        onChange={handleinput}
+                                        required />
                                 </div>
                             </div>
                             <div className="forgot-row">

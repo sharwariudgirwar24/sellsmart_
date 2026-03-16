@@ -10,6 +10,7 @@ import VendorLogin from './pages/auth/VendorLogin'
 import VendorSignup from './pages/auth/VendorSignup'
 import CustomerLogin from './pages/auth/CustomerLogin'
 import CustomerSignup from './pages/auth/CustomerSignup'
+import Profile   from './pages/customer/CustomerDashboard'
 
 // Dashboards
 import VendorDashboard from './pages/vendor/VendorDashboard'

@@ -2,33 +2,50 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import Navbar from '../../components/shared/Navbar'
 import AnimatedBackground from '../../components/shared/AnimatedBackground'
-import { useAppData } from '../../context/AppDataContext'
 import '../../styles/auth.css'
 
 export default function CustomerSignup() {
     const navigate = useNavigate()
-    const { register } = useAppData()
     const [loading, setLoading] = useState(false)
-    const [error, setError] = useState('')
+    const [error, setError] = useState("")
+    const [user, setUser] = useState({
+        FullName: "",
+        Email: "",
+        Phone: "",
+        password: "",
+    })
+
+    const handleinput = (e) => {
+        const name = e.target.name
+        const value = e.target.value
+        setUser({
+            ...user,
+            [name]: value,
+        })
+    }
 
     const handleSubmit = async (e) => {
         e.preventDefault()
-        setLoading(true)
-        setError('')
-
-        const formData = Object.fromEntries(new FormData(e.target))
-        formData.role = 'customer'
-
         try {
-            const res = register(formData)
-            if (res.success) {
-                setTimeout(() => navigate('/customer-dashboard'), 600)
+            setLoading(true)
+            setError("")
+            const response = await fetch("http://localhost:5000/usersignup", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                credentials: "include",
+                body: JSON.stringify(user),
+            })
+            const data = await response.json()
+            if (response.ok) {
+                navigate("/customer-dashboard")
             } else {
-                setError(res.error || 'Registration failed')
-                setLoading(false)
+                setError(data.message || "Signup failed")
             }
         } catch (err) {
-            setError('An error occurred during registration.')
+            setError("Server error")
+        } finally {
             setLoading(false)
         }
     }
@@ -61,24 +78,33 @@ export default function CustomerSignup() {
                                 <label htmlFor="c-name">Full Name</label>
                                 <div className="input-wrap">
                                     <i className="fa-solid fa-user"></i>
-                                    <input id="c-name" name="name" type="text" className="form-input"
-                                        placeholder="John Smith" required />
+                                    <input id="c-name" name="FullName" type="text" className="form-input"
+                                        placeholder="John Smith" 
+                                        value={user.FullName}
+                                        onChange={handleinput}
+                                        required />
                                 </div>
                             </div>
                             <div className="form-group">
                                 <label htmlFor="c-email">Email Address</label>
                                 <div className="input-wrap">
                                     <i className="fa-regular fa-envelope"></i>
-                                    <input id="c-email" name="email" type="email" className="form-input"
-                                        placeholder="you@example.com" required />
+                                    <input id="c-email" name="Email" type="email" className="form-input"
+                                        placeholder="you@example.com" 
+                                        value={user.Email}
+                                        onChange={handleinput}
+                                        required />
                                 </div>
                             </div>
                             <div className="form-group">
                                 <label htmlFor="c-phone">Mobile Number</label>
                                 <div className="input-wrap">
                                     <i className="fa-solid fa-phone"></i>
-                                    <input id="c-phone" name="phone" type="tel" className="form-input"
-                                        placeholder="+91 9876543210" required />
+                                    <input id="c-phone" name="Phone" type="tel" className="form-input"
+                                        placeholder="+91 9876543210" 
+                                        value={user.Phone}
+                                        onChange={handleinput}
+                                        required />
                                 </div>
                             </div>
                             <div className="form-group">
@@ -86,7 +112,10 @@ export default function CustomerSignup() {
                                 <div className="input-wrap">
                                     <i className="fa-solid fa-lock"></i>
                                     <input id="c-pass" name="password" type="password" className="form-input"
-                                        placeholder="Create a strong password" required />
+                                        placeholder="Create a strong password"
+                                        value={user.password}
+                                        onChange={handleinput}
+                                        required />
                                 </div>
                             </div>
                             <button type="submit" className="submit-btn" disabled={loading}>

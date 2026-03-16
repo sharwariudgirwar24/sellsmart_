@@ -27,11 +27,15 @@ export default function PostGallery({ posts = [], onEdit, onDelete }) {
                             <div className="portfolio-item" key={post.id ?? i}>
                                 <div className="thumb">{post.icon}</div>
                                 <div className="item-type-badge">{post.label}</div>
+                                <div className="overlay">
+                                    <div className="caption">{post.caption}</div>
+                                    <div className="price-tag">{post.price}</div>
+                                </div>
                                 <div className="item-actions">
                                     <button
                                         className="item-act-btn"
                                         title="Edit"
-                                        onClick={() => onEdit?.(post)}
+                                        onClick={(e) => { e.stopPropagation(); onEdit?.(post); }}
                                     >
                                         <i className="fa-solid fa-pen"></i>
                                     </button>
@@ -39,14 +43,10 @@ export default function PostGallery({ posts = [], onEdit, onDelete }) {
                                         className="item-act-btn"
                                         title="Delete"
                                         style={{ color: 'var(--error)' }}
-                                        onClick={() => onDelete?.(post)}
+                                        onClick={(e) => { e.stopPropagation(); onDelete?.(post); }}
                                     >
                                         <i className="fa-solid fa-trash"></i>
                                     </button>
-                                </div>
-                                <div className="overlay">
-                                    <div className="caption">{post.caption}</div>
-                                    <div className="price-tag">{post.price}</div>
                                 </div>
                             </div>
                         ))}

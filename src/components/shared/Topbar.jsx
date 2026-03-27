@@ -4,8 +4,8 @@ import { useNavigate } from 'react-router-dom'
 export default function Topbar({ title, subtitle, role = 'business', onMenuClick, user, onAvatarClick, onBack }) {
     const navigate = useNavigate()
     
-    const dbName = user ? (role === 'business' ? user.BusinessName : user.FullName) : null;
-    const initial = dbName ? dbName.charAt(0).toUpperCase() : (role === 'business' ? 'B' : 'C');
+    const displayName = user?.FullName || (role === 'business' ? 'Business Account' : 'Customer Account');
+    const initial = displayName.charAt(0).toUpperCase();
 
     const [showSearch, setShowSearch] = useState(false);
     const [showNotif, setShowNotif] = useState(false);
@@ -77,12 +77,14 @@ export default function Topbar({ title, subtitle, role = 'business', onMenuClick
 
                 {/* Profile */}
                 <div style={{ position: 'relative' }}>
-                    <div className={role === 'business' ? 'topbar-avatar' : 'tb-avatar'} onClick={toggleProfile} style={{ cursor: 'pointer' }}>
-                        {initial}
+                    <div className={role === 'business' ? 'topbar-avatar' : 'tb-avatar'} onClick={toggleProfile} style={{ cursor: 'pointer', overflow: 'hidden' }}>
+                        {user?.avatar?.url ? (
+                            <img src={user.avatar.url} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        ) : initial}
                     </div>
                     {showProfile && (
                         <div className="dropdown-menu profile-menu">
-                            <div className="dropdown-header">{dbName || (role === 'business' ? 'Business' : 'Customer')}</div>
+                            <div className="dropdown-header">{displayName}</div>
                             <button className="dropdown-item" onClick={onAvatarClick}><i className="fa-solid fa-user"></i> Profile</button>
                             <div style={{ borderTop: '1px solid rgba(255,255,255,0.1)', margin: '0.5rem 0' }}></div>
                             <button className="dropdown-item text-error" onClick={() => navigate('/role-select')}><i className="fa-solid fa-right-from-bracket"></i> Logout</button>
@@ -92,17 +94,77 @@ export default function Topbar({ title, subtitle, role = 'business', onMenuClick
 
                 {/* Search Overlay */}
                 {showSearch && (
-                    <div style={{ position: 'absolute', top: '120%', right: '0', background: 'rgba(30, 41, 59, 0.95)', backdropFilter: 'blur(10px)', padding: '10px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.1)', boxShadow: '0 10px 25px rgba(0,0,0,0.5)', zIndex: 100, minWidth: '250px' }}>
-                        <form onSubmit={handleSearchSubmit} style={{ display: 'flex', gap: '5px' }}>
-                            <input type="text" placeholder="Search..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} style={{ flex: 1, padding: '8px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '6px', color: 'white', outline: 'none' }} autoFocus />
-                            <button type="submit" style={{ padding: '8px 12px', background: 'var(--indigo-lt)', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>Go</button>
+                    <div className="search-overlay-c">
+                        <form onSubmit={handleSearchSubmit} style={{ display: 'flex', gap: '8px' }}>
+                            <input 
+                                type="text" 
+                                placeholder="Search businesses..." 
+                                value={searchQuery} 
+                                onChange={(e) => setSearchQuery(e.target.value)} 
+                                className="top-search-input"
+                                autoFocus 
+                            />
+                            <button type="submit" className="top-search-btn">Go</button>
                         </form>
                     </div>
                 )}
             </div>
 
             <style>{`
+                .search-overlay-c {
+                    position: absolute;
+                    top: 120%;
+                    right: 0;
+                    background: rgba(30, 41, 59, 0.95);
+                    backdrop-filter: blur(10px);
+                    padding: 12px;
+                    border-radius: 12px;
+                    border: 1px solid rgba(255,255,255,0.1);
+                    box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+                    z-index: 100;
+                    min-width: 280px;
+                    animation: slideDown 0.2s ease;
+                }
+                .top-search-input {
+                    flex: 1;
+                    padding: 10px 14px;
+                    background: rgba(255, 255, 255, 0.05);
+                    border: 1px solid rgba(255, 255, 255, 0.1);
+                    border-radius: 8px;
+                    color: white;
+                    outline: none;
+                    font-size: 0.9rem;
+                    transition: border-color 0.2s;
+                }
+                .top-search-input:focus {
+                    border-color: var(--sky);
+                }
+                .top-search-btn {
+                    padding: 8px 16px;
+                    background: var(--sky-dark);
+                    color: white;
+                    border: none;
+                    border-radius: 8px;
+                    cursor: pointer;
+                    font-weight: 600;
+                    transition: background 0.2s;
+                }
+                .top-search-btn:hover {
+                    background: var(--sky);
+                }
+                @media (max-width: 480px) {
+                    .search-overlay-c {
+                        position: fixed;
+                        top: 70px;
+                        left: 15px;
+                        right: 15px;
+                        min-width: 0;
+                        width: auto;
+                    }
+                }
+
                 .dropdown-menu {
+
                     position: absolute;
                     top: 130%;
                     right: 0;

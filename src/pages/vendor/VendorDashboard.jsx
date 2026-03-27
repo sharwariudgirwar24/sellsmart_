@@ -4,10 +4,21 @@ import Sidebar from '../../components/shared/Sidebar'
 import Topbar from '../../components/shared/Topbar'
 import PostGallery from '../../components/vendor/PostGallery'
 import ChatBox from '../../components/shared/ChatSection'
+import { useAppData } from '../../context/AppDataContext'
 import '../../styles/dashboard.css'
 
 // ─── Overview Section ──────────────────────────────────────────────────────
-function Overview({ onNavigate, vendor }) {
+function Overview({ onNavigate, vendor, posts, recommendations }) {
+    // Recalculate stats dynamically from posts array
+    const totalViews = (posts || []).reduce((sum, p) => sum + (p.raw?.views || 0), 0);
+    const totalLikes = (posts || []).reduce((sum, p) => sum + (p.raw?.likes?.length || 0), 0);
+    
+    const postIds = (posts || []).map(p => p.id?.toString());
+    const vendorRecs = (recommendations || []).filter(r => postIds.includes(r.product_id?.toString()));
+    const avgPotential = vendorRecs.length > 0 
+        ? (vendorRecs.reduce((sum, r) => sum + r.engagement_potential, 0) / vendorRecs.length).toFixed(1)
+        : '0.0';
+
     return (
         <div className="content">
             <div className="dash-welcome">
@@ -18,17 +29,22 @@ function Overview({ onNavigate, vendor }) {
                 </div>
             </div>
 
-            <div className="section-heading"><i className="fa-solid fa-chart-bar"></i> Quick Stats</div>
+            <div className="section-heading"><i className="fa-solid fa-chart-line"></i> Performance Insights</div>
             <div className="dash-stats">
                 {[
-                    { val: '0', lbl: 'Profile Views', delta: '+0% this week' },
-                    { val: '0', lbl: 'WhatsApp Contacts', delta: '+0 this week' },
-                    { val: vendor?.postsCount || '0', lbl: 'Posts Published', delta: 'Recently updated' },
-                ].map(({ val, lbl, delta }) => (
+                    { val: totalViews, lbl: 'Total Post Views', icon: 'fa-eye', color: '#6366f1' },
+                    { val: totalLikes, lbl: 'Total Post Likes', icon: 'fa-heart', color: '#f43f5e' },
+                    { val: avgPotential, lbl: 'Avg. Engagement Potential', icon: 'fa-bolt', color: '#f59e0b' },
+                    { val: posts?.length || '0', lbl: 'Posts Published', icon: 'fa-images', color: '#10b981' },
+                ].map(({ val, lbl, icon, color }) => (
                     <div className="stat-card" key={lbl}>
-                        <div className="stat-val">{val}</div>
-                        <div className="stat-lbl">{lbl}</div>
-                        <div className="stat-delta"><i className="fa-solid fa-arrow-up"></i> {delta}</div>
+                        <div className="stat-icon-w" style={{ background: color + '20', color: color }}>
+                            <i className={`fa-solid ${icon}`}></i>
+                        </div>
+                        <div className="stat-content">
+                            <div className="stat-val">{val}</div>
+                            <div className="stat-lbl">{lbl}</div>
+                        </div>
                     </div>
                 ))}
             </div>
@@ -51,6 +67,7 @@ function Overview({ onNavigate, vendor }) {
 
 // ─── Profile Section ────────────────────────────────────────────────────────
 function Profile({ vendor, setVendor }) {
+    const { setAuth } = useAppData();
     const [isEditing, setIsEditing] = useState(false)
     const [loading, setLoading] = useState(false)
     const [message, setMessage] = useState('')
@@ -68,6 +85,7 @@ function Profile({ vendor, setVendor }) {
             if (res.ok) {
                 const data = await res.json();
                 setVendor(data.vendor);
+                setAuth(data.vendor, 'vendor');
                 setIsEditing(false);
                 setMessage("Profile updated successfully!");
                 setTimeout(() => setMessage(''), 3000);
@@ -300,7 +318,9 @@ export default function VendorDashboard() {
     const [history, setHistory] = useState(['overview'])
     const [sidebarOpen, setSidebarOpen] = useState(false)
     const [vendor, setVendor] = useState({ FullName: '', BusinessName: '', Email: '', Phone: '' })
+    const [recs, setRecs] = useState([])
     const navigate = useNavigate()
+    const { threads } = useAppData()
     const [posts, setPosts] = useState([])
     const [editingPost, setEditingPost] = useState(null)
 
@@ -324,23 +344,27 @@ export default function VendorDashboard() {
             navigate('/role-select');
         }
     };
-
     useEffect(() => {
-        const fetchVendorDetails = async () => {
+        const fetchVendorData = async () => {
             try {
-                const res = await fetch("http://localhost:5000/vendor/me", { credentials: "include" });
-                if (res.ok) {
-                    const data = await res.json();
-                    setVendor(data.vendor);
-                }
-            } catch(e) { console.log(e) }
-        }
+                const [vRes, pRes, rRes] = await Promise.all([
+                    fetch("http://localhost:5000/vendor/me", { credentials: "include" }),
+                    fetch("http://localhost:5000/vendor/posts", { credentials: "include" }),
+                    fetch("http://localhost:5000/recommendations")
+                ]);
 
-        const fetchVendorPosts = async () => {
-            try {
-                const res = await fetch("http://localhost:5000/vendor/posts", { credentials: "include" });
-                if (res.ok) {
-                    const data = await res.json();
+                let vendorData = { FullName: '', BusinessName: '', Email: '', Phone: '' };
+                let productList = [];
+                let recommendations = [];
+
+                if (vRes.ok) {
+                    const data = await vRes.json();
+                    vendorData = data.vendor;
+                }
+
+                if (pRes.ok) {
+                    const data = await pRes.json();
+                    productList = data.products;
                     const formattedPosts = data.products.map(p => ({
                         id: p._id,
                         icon: p.images && p.images.length > 0 ? (
@@ -353,16 +377,22 @@ export default function VendorDashboard() {
                     }));
                     setPosts(formattedPosts);
                 }
-            } catch (e) { console.log(e) }
+
+                if (rRes.ok) {
+                    const data = await rRes.json();
+                    setRecs(data.recommendations);
+                }
+
+                setVendor(vendorData);
+            } catch(e) { console.log("Vendor Dash Fetch Error:", e) }
         }
         
-        fetchVendorDetails();
-        fetchVendorPosts();
+        fetchVendorData();
     }, [])
 
     const renderSection = () => {
         switch (section) {
-            case 'overview': return <Overview onNavigate={handleNavigate} vendor={vendor} />
+            case 'overview': return <Overview onNavigate={handleNavigate} vendor={vendor} posts={posts} recommendations={recs} />
             case 'profile': return <Profile vendor={vendor} setVendor={setVendor} />
             case 'upload': return <UploadSection initialData={editingPost} onDone={(newPost, isUpdate) => {
                                         if (isUpdate) {
@@ -396,7 +426,8 @@ export default function VendorDashboard() {
                                         }
                                     }} 
                                   />
-            case 'messages': return <ChatBox threads={[]} avatarKey="initials" />
+            case 'messages': return <ChatBox threads={threads} avatarKey="initials" />
+
             case 'settings': return <Settings vendor={vendor} />
             default: return <Overview onNavigate={handleNavigate} vendor={vendor} />
         }

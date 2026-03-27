@@ -10,6 +10,7 @@ const businessNavItems = [
 ]
 
 const customerNavItems = [
+    { section: 'feed', icon: 'fa-solid fa-rss', label: 'Feed' },
     { section: 'explore', icon: 'fa-solid fa-compass', label: 'Explore' },
     { section: 'profile', icon: 'fa-solid fa-user', label: 'My Profile' },
     { section: 'messages', icon: 'fa-solid fa-comment-dots', label: 'Messages' },
@@ -20,12 +21,12 @@ export default function Sidebar({ role = 'business', activeSection, onNavigate, 
     const navigate = useNavigate()
     const navItems = role === 'business' ? businessNavItems : customerNavItems
     
-    // Determine the dynamic custom name based on the logged-in user details
-    const dbName = user ? (role === 'business' ? user.BusinessName : user.FullName) : null;
-    const ownerName = dbName || (role === 'business' ? 'Business Owner' : 'Customer')
+    // Prioritize Vendor Name (FullName) for the display name and initial
+    const vendorName = user?.FullName || (role === 'business' ? 'Business Owner' : 'Customer');
+    const bizName = user?.BusinessName || '';
     
-    // Determine avatar initials based on the custom name
-    const ownerInitial = dbName ? dbName.charAt(0).toUpperCase() : (role === 'business' ? 'B' : 'C')
+    // Determine avatar initial based on Vendor's first alphabet
+    const ownerInitial = vendorName.charAt(0).toUpperCase();
     const ownerRole = role === 'business' ? 'Business Account' : 'Customer Account'
 
     return (
@@ -42,10 +43,15 @@ export default function Sidebar({ role = 'business', activeSection, onNavigate, 
 
                 {/* User info */}
                 <div className={role === 'business' ? 'sidebar-owner' : 'sb-user'} onClick={() => { onNavigate('profile'); onClose(); }} style={{ cursor: 'pointer' }}>
-                    <div className={role === 'business' ? 'owner-avatar' : 'u-avatar'}>{ownerInitial}</div>
+                    <div className={role === 'business' ? 'owner-avatar' : 'u-avatar'} style={{ overflow: 'hidden' }}>
+                        {user?.avatar?.url ? (
+                            <img src={user.avatar.url} alt="User" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        ) : ownerInitial}
+                    </div>
                     <div className={role === 'business' ? 'owner-info' : ''}>
-                        <div className={role === 'business' ? 'name' : 'u-name'}>{ownerName}</div>
-                        <div className={role === 'business' ? 'role' : 'u-role'}>{ownerRole}</div>
+                    <div className={role === 'business' ? 'name' : 'u-name'}>{vendorName}</div>
+                    {bizName && role === 'business' && <div className="biz-subname" style={{fontSize: '0.7rem', color: 'var(--muted)', marginTop: '2px'}}>{bizName}</div>}
+                    <div className={role === 'business' ? 'role' : 'u-role'} style={{marginTop: '4px'}}>{ownerRole}</div>
                     </div>
                 </div>
 

@@ -1,4 +1,8 @@
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { io } from 'socket.io-client';
+
+const socket = io("http://localhost:5000", { withCredentials: true, autoConnect: false });
+
 
 const AppDataContext = createContext();
 
@@ -63,15 +67,9 @@ export function AppDataProvider({ children }) {
         return stored ? JSON.parse(stored) : null;
     });
 
-    const [vendors, setVendors] = useState(() => {
-        const stored = localStorage.getItem('vendors');
-        return stored ? JSON.parse(stored) : SEED_VENDORS;
-    });
+    const [vendors, setVendors] = useState([]);
 
-    const [posts, setPosts] = useState(() => {
-        const stored = localStorage.getItem('posts');
-        return stored ? JSON.parse(stored) : SEED_POSTS;
-    });
+    const [posts, setPosts] = useState([]);
 
     const [threads, setThreads] = useState(() => {
         const stored = localStorage.getItem('threads');
@@ -80,42 +78,167 @@ export function AppDataProvider({ children }) {
 
     const [typingState, setTypingState] = useState({}); // { threadId: { vendor: true, customer: false } }
 
-    const [notifications, setNotifications] = useState(() => {
-        const stored = localStorage.getItem('notifications');
-        return stored ? JSON.parse(stored) : SEED_NOTIFS;
-    });
+    const fetchThreads = async () => {
+        try {
+            const res = await fetch("http://localhost:5000/chat/threads", { credentials: "include" });
+            if (res.ok) {
+                const data = await res.json();
+                const mappedThreads = await Promise.all(data.threads.map(async (t) => {
+                    // Fetch messages for each thread to initialize
+                    const mRes = await fetch(`http://localhost:5000/chat/messages/${t._id}`, { credentials: "include" });
+                    const mData = await mRes.json();
+                    return {
+                        id: t._id,
+                        name: t.name || t._id.substring(0, 8),
+                        preview: t.lastMessage,
+                        time: new Date(t.lastTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                        unread: 0,
+                        messages: mData.messages?.map(m => ({
+                            id: m._id,
+                            senderRole: m.senderModel === 'User' ? 'customer' : 'vendor',
+                            text: m.content,
+                            time: new Date(m.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                            status: (m.senderModel === (currentUser.role === 'vendor' ? 'Vendor' : 'User')) ? 'delivered' : 'seen'
+                        }))
+                    };
 
-    // ─── Effects for Persistance ───
-    useEffect(() => localStorage.setItem('currentUser', JSON.stringify(currentUser)), [currentUser]);
-    useEffect(() => localStorage.setItem('vendors', JSON.stringify(vendors)), [vendors]);
-    useEffect(() => localStorage.setItem('posts', JSON.stringify(posts)), [posts]);
-    useEffect(() => localStorage.setItem('threads', JSON.stringify(threads)), [threads]);
-    useEffect(() => localStorage.setItem('notifications', JSON.stringify(notifications)), [notifications]);
+                }));
+                setThreads(mappedThreads);
+            }
+        } catch (e) {
+            console.log("Fetch Threads Error:", e);
+        }
+    };
 
-    // ─── Auth Methods ───
-    const login = (email, password, role) => {
-        let user;
-        if (role === 'vendor') {
-            user = vendors.find(v => v.email === email);
-        } else {
-            const storedUser = localStorage.getItem('currentUser');
-            if (storedUser) {
-                const parsed = JSON.parse(storedUser);
-                if (parsed.email === email && parsed.role === 'customer') {
-                    user = parsed;
-                }
+    const fetchVendors = async () => {
+        try {
+            const res = await fetch("http://localhost:5000/vendors");
+            if (res.ok) {
+                const data = await res.json();
+                setVendors(data.vendors);
+            }
+        } catch (e) { console.log(e); }
+    };
+
+    // Socket connection
+    useEffect(() => {
+        if (currentUser) {
+            fetchThreads();
+            fetchVendors();
+            socket.connect();
+
+
+            socket.emit("authenticate", currentUser.id || currentUser._id);
+            
+            const handleMessage = (msg) => {
+                setThreads(prev => {
+                    const threadId = msg.sender === (currentUser.id || currentUser._id) ? msg.receiver : msg.sender;
+                    const exists = prev.find(t => t.id === threadId);
+                    
+                    if (exists) {
+                        return prev.map(t => t.id === threadId ? {
+                            ...t,
+                            messages: [...(t.messages || []), {
+                                id: msg._id,
+                                senderRole: msg.senderModel === 'User' ? 'customer' : 'vendor',
+                                text: msg.content,
+                                time: new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                                status: 'delivered'
+                            }],
+                            preview: msg.content,
+                            time: 'Just now',
+                            unread: (msg.receiver === (currentUser.id || currentUser._id)) ? t.unread + 1 : t.unread
+                        } : t);
+                    } else {
+                        // New thread - try to find name from global vendor list if applicable
+                        let otherName = 'New Chat';
+                        if (msg.senderModel === 'Vendor' || msg.receiverModel === 'Vendor') {
+                            const v = vendors.find(vend => (vend.id || vend._id) === threadId);
+                            if (v) otherName = v.BusinessName || v.FullName;
+                        }
+
+                        return [{
+                            id: threadId,
+                            name: otherName,
+                            preview: msg.content,
+                            time: 'Just now',
+                            unread: (msg.receiver === (currentUser.id || currentUser._id)) ? 1 : 0,
+                            messages: [{
+                                id: msg._id,
+                                senderRole: msg.senderModel === 'User' ? 'customer' : 'vendor',
+                                text: msg.content,
+                                time: new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                                status: 'delivered'
+                            }]
+                        }, ...prev];
+                    }
+
+                });
+            };
+
+            socket.on("receive_message", handleMessage);
+            socket.on("message_sent", handleMessage);
+
+            return () => {
+                socket.off("receive_message", handleMessage);
+                socket.off("message_sent", handleMessage);
+                socket.disconnect();
             }
         }
+    }, [currentUser]);
 
-        if (user) {
-            setCurrentUser({ ...user, role });
-            return { success: true };
+    const [notifications, setNotifications] = useState([]);
+
+
+    // ─── Effects for Persistance ───
+    useEffect(() => {
+        if (currentUser) {
+            localStorage.setItem('currentUser', JSON.stringify(currentUser));
+        } else {
+            localStorage.removeItem('currentUser');
         }
+    }, [currentUser]);
 
-        const newUser = { id: Date.now().toString(), email, role, name: email.split('@')[0] };
-        if (role === 'vendor') setVendors([...vendors, newUser]);
-        setCurrentUser(newUser);
-        return { success: true };
+    const setAuth = (user, role) => {
+        if (user) {
+            const userData = { ...user, role: role || user.role };
+            setCurrentUser(userData);
+            localStorage.setItem('currentUser', JSON.stringify(userData));
+        }
+    };
+
+    // Auto-check session on mount
+    useEffect(() => {
+        const checkSession = async () => {
+            try {
+                // Try fetching user profile first
+                const uRes = await fetch("http://localhost:5000/me", { credentials: "include" });
+                if (uRes.ok) {
+                    const uData = await uRes.json();
+                    setAuth(uData.user, 'customer');
+                    return;
+                }
+
+                // Try fetching vendor profile if user fails
+                const vRes = await fetch("http://localhost:5000/vendor/me", { credentials: "include" });
+                if (vRes.ok) {
+                    const vData = await vRes.json();
+                    setAuth(vData.vendor, 'vendor');
+                }
+            } catch (err) {
+                console.log("Session recovery failed:", err);
+            }
+        };
+
+        if (!currentUser) {
+            checkSession();
+        }
+    }, []);
+
+    const login = (email, password, role) => {
+        // This is now just a fallback / helper. 
+        // Real logic should use setAuth from Login components after successful fetch.
+        return { success: true }; 
     };
 
     const register = (userData) => {
@@ -129,7 +252,8 @@ export function AppDataProvider({ children }) {
 
     const logout = () => {
         setCurrentUser(null);
-        localStorage.removeItem('currentUser');
+        localStorage.clear(); // Complete cleanup
+        window.location.href = "/role-select";
     };
 
     // ─── Post Methods ───
@@ -193,43 +317,17 @@ export function AppDataProvider({ children }) {
     };
 
     const sendMessage = (threadId, text, senderRole = 'vendor') => {
-        const messageId = Date.now().toString();
-        const timeStr = formatTime();
-
-        setThreads(threads.map(t => {
-            if (t.id === threadId) {
-                const msg = { id: messageId, senderRole, text, time: timeStr, status: 'sent' };
-                // Simulate status upgrade to delivered
-                setTimeout(() => updateMessageStatus(threadId, messageId, 'delivered'), 800);
-                return { ...t, messages: [...t.messages, msg], preview: text, time: timeStr };
-            }
-            return t;
-        }));
-
-        // Mock Chatbot Response for Customers
-        if (senderRole === 'customer') {
-            const botText = generateBotResponse(text);
-            if (botText) {
-                setTyping(threadId, true);
-                setTimeout(() => {
-                    setThreads(currentThreads => currentThreads.map(t => {
-                        if (t.id === threadId) {
-                            const botMsg = { id: (Date.now() + 1).toString(), senderRole: 'vendor', text: botText, time: formatTime(), status: 'delivered' };
-
-                            // If it's urgent, trigger a notification for the business
-                            if (botText.includes('notified the business owner')) {
-                                setNotifications(prev => [{ id: Date.now().toString(), type: 'info', title: `New inquiry from ${t.name}`, time: 'Just now', read: false }, ...prev]);
-                            }
-
-                            return { ...t, messages: [...t.messages, botMsg], preview: botText, time: formatTime(), unread: t.unread + 1 };
-                        }
-                        return t;
-                    }));
-                    setTyping(threadId, false);
-                }, 2500); // 2.5-second delay to show "typing..."
-            }
-        }
+        if (!currentUser) return;
+        
+        socket.emit("send_message", {
+            sender: currentUser.id || currentUser._id,
+            senderModel: currentUser.role === 'vendor' ? 'Vendor' : 'User',
+            receiver: threadId, // Assuming threadId is the ID of the other person
+            receiverModel: currentUser.role === 'vendor' ? 'User' : 'Vendor',
+            content: text
+        });
     };
+
 
     const updateMessageStatus = (threadId, messageId, newStatus) => {
         setThreads(currentThreads => currentThreads.map(t => {
@@ -310,6 +408,8 @@ export function AppDataProvider({ children }) {
         createThread,
         markThreadRead,
         toggleThreadResolved,
+        setTyping,
+        setAuth, // New method for components to use
         markNotificationsRead: () => setNotifications(notifications.map(n => ({ ...n, read: true })))
     };
 

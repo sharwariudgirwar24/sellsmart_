@@ -3,21 +3,23 @@ import { useNavigate } from 'react-router-dom'
 import Sidebar from '../../components/shared/Sidebar'
 import Topbar from '../../components/shared/Topbar'
 import PostGallery from '../../components/vendor/PostGallery'
+import AnalyticsCharts from '../../components/vendor/AnalyticsCharts'
 import ChatBox from '../../components/shared/ChatSection'
+
 import { useAppData } from '../../context/AppDataContext'
 import '../../styles/dashboard.css'
 
 // ─── Overview Section ──────────────────────────────────────────────────────
-function Overview({ onNavigate, vendor, posts, recommendations }) {
-    // Recalculate stats dynamically from posts array
-    const totalViews = (posts || []).reduce((sum, p) => sum + (p.raw?.views || 0), 0);
-    const totalLikes = (posts || []).reduce((sum, p) => sum + (p.raw?.likes?.length || 0), 0);
-    
-    const postIds = (posts || []).map(p => p.id?.toString());
-    const vendorRecs = (recommendations || []).filter(r => postIds.includes(r.product_id?.toString()));
-    const avgPotential = vendorRecs.length > 0 
-        ? (vendorRecs.reduce((sum, r) => sum + r.engagement_potential, 0) / vendorRecs.length).toFixed(1)
-        : '0.0';
+function Overview({ onNavigate, vendor, posts, insights, recommendations }) {
+    // Fallback if insights are not loaded
+    const totalViews = insights?.totalViews || 0;
+    const totalLikes = insights?.totalLikes || 0;
+    const totalComments = insights?.totalComments || 0;
+    const engagementScore = insights?.engagementScore?.toFixed(1) || '0.0';
+
+    const globalTrendingCat = recommendations?.targetCategory || "N/A";
+    const advice = recommendations?.advice || "Keep posting high-quality content!";
+
 
     return (
         <div className="content">
@@ -34,8 +36,8 @@ function Overview({ onNavigate, vendor, posts, recommendations }) {
                 {[
                     { val: totalViews, lbl: 'Total Post Views', icon: 'fa-eye', color: '#6366f1' },
                     { val: totalLikes, lbl: 'Total Post Likes', icon: 'fa-heart', color: '#f43f5e' },
-                    { val: avgPotential, lbl: 'Avg. Engagement Potential', icon: 'fa-bolt', color: '#f59e0b' },
-                    { val: posts?.length || '0', lbl: 'Posts Published', icon: 'fa-images', color: '#10b981' },
+                    { val: totalComments, lbl: 'Total Comments', icon: 'fa-comment', color: '#ec4899' },
+                    { val: engagementScore, lbl: 'Engagement Score', icon: 'fa-bolt', color: '#f59e0b' },
                 ].map(({ val, lbl, icon, color }) => (
                     <div className="stat-card" key={lbl}>
                         <div className="stat-icon-w" style={{ background: color + '20', color: color }}>
@@ -48,6 +50,28 @@ function Overview({ onNavigate, vendor, posts, recommendations }) {
                     </div>
                 ))}
             </div>
+
+            {/* ─── NEW CHARTS SECTION ─── */}
+            <div className="section-heading"><i className="fa-solid fa-chart-area"></i> Engagement Analysis</div>
+            <AnalyticsCharts posts={posts} insights={insights} />
+
+            {recommendations && (
+                <div className="recommendation-card" style={{ marginTop: '1.5rem', background: 'linear-gradient(135deg, #1e293b, #0f172a)', border: '1px solid var(--indigo-lt)', padding: '20px', borderRadius: '15px' }}>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
+                        <i className="fa-solid fa-wand-magic-sparkles" style={{ color: 'var(--indigo-lt)' }}></i>
+                        <h3 style={{ margin: 0, fontSize: '1rem', color: '#fff' }}>Growth Recommendation</h3>
+                    </div>
+                    <p style={{ color: '#cbd5e1', fontSize: '0.9rem', lineHeight: '1.5' }}>{advice}</p>
+                    <div style={{ marginTop: '12px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <span style={{ fontSize: '0.75rem', background: 'rgba(99,102,241,0.2)', color: 'var(--indigo-lt)', padding: '4px 10px', borderRadius: '20px', fontWeight: 'bold' }}>
+                            Top Global Niche: {globalTrendingCat}
+                        </span>
+                        <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>{recommendations.action}</span>
+                    </div>
+                </div>
+            )}
+
 
             <div className="section-heading"><i className="fa-solid fa-bolt"></i> Quick Actions</div>
             <div className="dash-quick-actions">
@@ -320,9 +344,10 @@ export default function VendorDashboard() {
     const [vendor, setVendor] = useState({ FullName: '', BusinessName: '', Email: '', Phone: '' })
     const [recs, setRecs] = useState([])
     const navigate = useNavigate()
-    const { threads } = useAppData()
+    const { threads, vendorInsights, vendorRecommendations, fetchInsights, fetchRecommendations } = useAppData()
     const [posts, setPosts] = useState([])
     const [editingPost, setEditingPost] = useState(null)
+
 
     const handleNavigate = (newSection) => {
         if (newSection !== section) {
@@ -384,15 +409,19 @@ export default function VendorDashboard() {
                 }
 
                 setVendor(vendorData);
+                fetchInsights();
+                fetchRecommendations();
             } catch(e) { console.log("Vendor Dash Fetch Error:", e) }
         }
         
         fetchVendorData();
-    }, [])
+    }, [fetchInsights, fetchRecommendations])
+
 
     const renderSection = () => {
         switch (section) {
-            case 'overview': return <Overview onNavigate={handleNavigate} vendor={vendor} posts={posts} recommendations={recs} />
+            case 'overview': return <Overview onNavigate={handleNavigate} vendor={vendor} posts={posts} insights={vendorInsights} recommendations={vendorRecommendations} />
+
             case 'profile': return <Profile vendor={vendor} setVendor={setVendor} />
             case 'upload': return <UploadSection initialData={editingPost} onDone={(newPost, isUpdate) => {
                                         if (isUpdate) {

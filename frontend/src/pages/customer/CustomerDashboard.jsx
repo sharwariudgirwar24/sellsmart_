@@ -18,11 +18,12 @@ const CATEGORIES = [
 
 // ─── Explore Section ─────────────────────────────────────────────────────────
 function Explore({ onChatClick, onBizClick }) {
-    const { vendors: globalVendors } = useAppData()
+    const { vendors: globalVendors, trendingProducts, fetchTrending } = useAppData()
     const [view, setView] = useState('businesses') // 'businesses' or 'products'
     const [selectedCategory, setSelectedCategory] = useState('All')
     const [searchQuery, setSearchQuery] = useState('')
     const [products, setProducts] = useState([])
+
     const [vendors, setVendors] = useState(() => globalVendors?.map(v => ({
         id: v.id || v._id,
         businessName: v.BusinessName || v.name,
@@ -36,17 +37,7 @@ function Explore({ onChatClick, onBizClick }) {
 
     const [savedVendors, setSavedVendors] = useState([])
     const [searching, setSearching] = useState(false)
-    const [recommendations, setRecommendations] = useState([])
 
-    const fetchRecommendations = async () => {
-        try {
-            const res = await fetch("http://localhost:5000/recommendations")
-            if (res.ok) {
-                const data = await res.json()
-                setRecommendations(data.recommendations)
-            }
-        } catch (e) { console.log("Rec Error:", e) }
-    }
 
     const fetchSavedVendors = async () => {
         try {
@@ -101,8 +92,9 @@ function Explore({ onChatClick, onBizClick }) {
     useEffect(() => {
         fetchSavedVendors()
         fetchResults()
-        fetchRecommendations()
-    }, [view, selectedCategory])
+        fetchTrending()
+    }, [view, selectedCategory, fetchTrending])
+
 
     const handleSearch = (e) => {
         if (e) e.preventDefault();
@@ -235,14 +227,14 @@ function Explore({ onChatClick, onBizClick }) {
             </div>
 
             {/* Suggested / Trending Section */}
-            {view === 'products' && recommendations.length > 0 && (
+            {view === 'products' && trendingProducts.length > 0 && (
                 <div className="trending-sec" style={{marginTop: '2rem'}}>
                     <div className="sec-head">
-                        <i className="fa-solid fa-fire" style={{color: '#ff4d4d'}}></i> Suggested For You 
-                        <span className="badge-ai">AI Ranked</span>
+                        <i className="fa-solid fa-fire" style={{color: '#ff4d4d'}}></i> Trending Now 
+                        <span className="badge-ai">AI Predicted Potential</span>
                     </div>
                     <div className="trending-scroll">
-                        {recommendations.slice(0, 5).map(rec => {
+                        {trendingProducts.slice(0, 5).map(rec => {
                             const p = products.find(prod => (prod.id || prod._id) == rec.product_id);
                             if (!p) return null;
                             return (
@@ -264,6 +256,7 @@ function Explore({ onChatClick, onBizClick }) {
                     </div>
                 </div>
             )}
+
 
             {/* Results Grid */}
             <div style={{ marginTop: '2rem' }}>
@@ -313,9 +306,10 @@ function Explore({ onChatClick, onBizClick }) {
                                             <div className="p-placeholder">📸</div>
                                         )}
                                         <div className="p-price-tag">₹{p.price}</div>
-                                        {recommendations.some(r => r.product_id == p._id) && (
-                                            <div className="p-trend-badge"><i className="fa-solid fa-chart-line"></i> Trending</div>
+                                        {trendingProducts.some(r => r.product_id == p._id) && (
+                                            <div className="p-trend-badge"><i className="fa-solid fa-chart-line"></i> High Potential</div>
                                         )}
+
                                     </div>
                                     <div className="p-card-info">
                                         <h4>{p.name}</h4>
@@ -437,16 +431,15 @@ function Explore({ onChatClick, onBizClick }) {
 
 // ─── Feed Section ────────────────────────────────────────────────────────────
 function Feed({ onChatClick, onBizClick }) {
-    const { currentUser } = useAppData();
+    const { currentUser, trendingProducts, fetchTrending } = useAppData();
     const [products, setProducts] = useState([]);
-    const [recommendations, setRecommendations] = useState([]);
+
     const [loading, setLoading] = useState(true);
 
     const fetchFeed = async () => {
         try {
-            const [pRes, rRes, sRes] = await Promise.all([
+            const [pRes, sRes] = await Promise.all([
                 fetch("http://localhost:5000/products"),
-                fetch("http://localhost:5000/recommendations"),
                 fetch("http://localhost:5000/saved-vendors", { credentials: "include" })
             ]);
             
@@ -454,10 +447,8 @@ function Feed({ onChatClick, onBizClick }) {
                 const pData = await pRes.json();
                 setProducts(pData.products);
             }
-            if (rRes.ok) {
-                const rData = await rRes.json();
-                setRecommendations(rData.recommendations);
-            }
+            fetchTrending();
+
             if (sRes.ok) {
                 const sData = await sRes.json();
                 setSavedVendors(sData.savedVendors.map(v => v._id));
@@ -498,10 +489,11 @@ function Feed({ onChatClick, onBizClick }) {
 
     // Sort products based on AI recommendations if available
     const sortedProducts = [...products].sort((a, b) => {
-        const recA = recommendations.find(r => r.product_id == (a.id || a._id))?.engagement_potential || 0;
-        const recB = recommendations.find(r => r.product_id == (b.id || b._id))?.engagement_potential || 0;
+        const recA = trendingProducts.find(r => r.product_id == (a.id || a._id))?.engagement_potential || 0;
+        const recB = trendingProducts.find(r => r.product_id == (b.id || b._id))?.engagement_potential || 0;
         return recB - recA;
     });
+
 
     return (
         <div className="content">

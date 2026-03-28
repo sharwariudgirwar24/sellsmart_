@@ -31,6 +31,8 @@ import { getMessages, getChatThreads } from "./controller/messageController.js";
 import { upload } from "./middleware/upload.js";
 import { getRecommendations } from "./controller/mlController.js";
 import { likeProduct, addComment, incrementView } from "./controller/productEngagementController.js";
+import { getTrendingProducts, getVendorRecommendations, getVendorInsights } from "./controller/analyticsController.js";
+
 
 
 
@@ -99,8 +101,11 @@ app.route("/product/view/:id").patch(incrementView);
 app.route("/chat/threads").get(isAuthenticated, getChatThreads);
 app.route("/chat/messages/:otherId").get(isAuthenticated, getMessages);
 
-// ML/Intelligence Routes
+// ML/Intelligence & Analytics Routes
 app.route("/recommendations").get(getRecommendations);
+app.route("/analytics/trending").get(getTrendingProducts);
+app.route("/analytics/recommendations").get(isAuthenticatedVendor, getVendorRecommendations);
+app.route("/analytics/insights").get(isAuthenticatedVendor, getVendorInsights);
 
 // error middleware
 

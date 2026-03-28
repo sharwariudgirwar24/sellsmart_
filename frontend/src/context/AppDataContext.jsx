@@ -188,6 +188,10 @@ export function AppDataProvider({ children }) {
     }, [currentUser]);
 
     const [notifications, setNotifications] = useState([]);
+    const [trendingProducts, setTrendingProducts] = useState([]);
+    const [vendorInsights, setVendorInsights] = useState(null);
+    const [vendorRecommendations, setVendorRecommendations] = useState(null);
+
 
 
     // ─── Effects for Persistance ───
@@ -255,6 +259,34 @@ export function AppDataProvider({ children }) {
         localStorage.clear(); // Complete cleanup
         window.location.href = "/role-select";
     };
+
+    // ─── Analytics Methods ───
+    const fetchTrending = async () => {
+        try {
+            const res = await fetch("http://localhost:5000/analytics/trending", { credentials: "include" });
+            const data = await res.json();
+            if (data.success) setTrendingProducts(data.trending);
+        } catch (e) { console.error("Fetch Trending Error:", e); }
+    };
+
+    const fetchInsights = async () => {
+        if (!currentUser || currentUser.role !== 'vendor') return;
+        try {
+            const res = await fetch("http://localhost:5000/analytics/insights", { credentials: "include" });
+            const data = await res.json();
+            if (data.success) setVendorInsights(data.insights);
+        } catch (e) { console.error("Fetch Insights Error:", e); }
+    };
+
+    const fetchRecommendations = async () => {
+        if (!currentUser || currentUser.role !== 'vendor') return;
+        try {
+            const res = await fetch("http://localhost:5000/analytics/recommendations", { credentials: "include" });
+            const data = await res.json();
+            if (data.success) setVendorRecommendations(data.recommendation);
+        } catch (e) { console.error("Fetch Recommendations Error:", e); }
+    };
+
 
     // ─── Post Methods ───
     const addPost = (postData) => {
@@ -409,9 +441,16 @@ export function AppDataProvider({ children }) {
         markThreadRead,
         toggleThreadResolved,
         setTyping,
-        setAuth, // New method for components to use
+        setAuth, 
+        trendingProducts,
+        vendorInsights,
+        vendorRecommendations,
+        fetchTrending,
+        fetchInsights,
+        fetchRecommendations,
         markNotificationsRead: () => setNotifications(notifications.map(n => ({ ...n, read: true })))
     };
+
 
     return (
         <AppDataContext.Provider value={value}>

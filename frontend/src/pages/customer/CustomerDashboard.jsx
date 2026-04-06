@@ -9,12 +9,16 @@ import { useAppData } from '../../context/AppDataContext'
 import '../../styles/dashboard.css'
 
 const CATEGORIES = [
+    { icon: 'fa-solid fa-bolt', label: 'Hot Pulse' },
     { icon: 'fa-solid fa-scissors', label: 'Fashion & Tailoring' },
     { icon: 'fa-solid fa-camera', label: 'Photography' },
     { icon: 'fa-solid fa-utensils', label: 'Food & Bakery' },
     { icon: 'fa-solid fa-spa', label: 'Beauty & Salon' },
     { icon: 'fa-solid fa-screwdriver-wrench', label: 'Repair & Electronics' },
+    { icon: 'fa-solid fa-palette', label: 'Handicrafts' },
+    { icon: 'fa-solid fa-couch', label: 'Home Decor' },
 ]
+
 
 // ─── Explore Section ─────────────────────────────────────────────────────────
 function Explore({ onChatClick, onBizClick }) {
@@ -37,6 +41,7 @@ function Explore({ onChatClick, onBizClick }) {
 
     const [savedVendors, setSavedVendors] = useState([])
     const [searching, setSearching] = useState(false)
+    const [localViews, setLocalViews] = useState({}); // { productId: viewCount }
 
 
     const fetchSavedVendors = async () => {
@@ -54,13 +59,19 @@ function Explore({ onChatClick, onBizClick }) {
         try {
             const params = new URLSearchParams()
             if (searchQuery) params.append('keyword', searchQuery)
-            if (selectedCategory !== 'All') params.append('category', selectedCategory)
-            
+            if (selectedCategory !== 'All' && selectedCategory !== 'Hot Pulse') params.append('category', selectedCategory)
+
             if (view === 'products') {
                 const res = await fetch(`http://localhost:5000/products?${params.toString()}`)
                 if (res.ok) {
                     const data = await res.json()
-                    setProducts(data.products)
+                    let fetchedProds = data.products;
+                    
+                    if (selectedCategory === 'Hot Pulse') {
+                        fetchedProds.sort((a, b) => (b.velocity || 0) - (a.velocity || 0));
+                    }
+                    
+                    setProducts(fetchedProds);
                 }
             } else {
                 const res = await fetch(`http://localhost:5000/vendors?${params.toString()}`)
@@ -103,17 +114,17 @@ function Explore({ onChatClick, onBizClick }) {
 
     const handleToggleSave = async (biz) => {
         const isCurrentlySaved = savedVendors.includes(biz.id);
-        const url = isCurrentlySaved 
-            ? `http://localhost:5000/unsave-vendor/${biz.id}` 
+        const url = isCurrentlySaved
+            ? `http://localhost:5000/unsave-vendor/${biz.id}`
             : `http://localhost:5000/save-vendor/${biz.id}`;
-        
+
         try {
-            const res = await fetch(url, { 
-                method: isCurrentlySaved ? 'DELETE' : 'POST', 
-                credentials: "include" 
+            const res = await fetch(url, {
+                method: isCurrentlySaved ? 'DELETE' : 'POST',
+                credentials: "include"
             });
             if (res.ok) {
-                setSavedVendors(prev => 
+                setSavedVendors(prev =>
                     isCurrentlySaved ? prev.filter(id => id !== biz.id) : [...prev, biz.id]
                 );
             }
@@ -128,7 +139,7 @@ function Explore({ onChatClick, onBizClick }) {
         setSearching(true);
         const params = new URLSearchParams();
         if (selectedCategory !== 'All') params.append('category', selectedCategory);
-        
+
         const urlMap = view === 'products' ? 'products' : 'vendors';
         fetch(`http://localhost:5000/${urlMap}?${params.toString()}`)
             .then(res => res.json())
@@ -151,18 +162,24 @@ function Explore({ onChatClick, onBizClick }) {
     }
 
     const handleLike = async (productId, e) => {
-        e.stopPropagation();
+        if (e) e.stopPropagation();
+        if (!productId) return console.warn("Missing product ID for like action");
         try {
-            const res = await fetch(`http://localhost:5000/product/like/${productId}`, { 
-                method: 'POST', 
-                credentials: "include" 
+            const res = await fetch(`http://localhost:5000/product/like/${productId}`, {
+                method: 'POST',
+                credentials: "include"
             });
             if (res.ok) fetchResults();
         } catch (e) { console.log(e) }
     }
 
     const handleViewProduct = (productId) => {
-        fetch(`http://localhost:5000/product/view/${productId}`, { method: 'PATCH' });
+        console.log("Incrementing view for product:", productId);
+        setLocalViews(prev => ({ ...prev, [productId]: (prev[productId] || products.find(p => (p._id || p.id) === productId)?.views || 0) + 1 }));
+        fetch(`http://localhost:5000/product/view/${productId}`, { method: 'PATCH' })
+            .then(res => res.json())
+            .then(data => console.log("View count update success:", data))
+            .catch(e => console.error("View count update failed:", e));
     }
 
 
@@ -171,31 +188,31 @@ function Explore({ onChatClick, onBizClick }) {
             {/* View Toggle & Search */}
             <div className="card">
                 <div style={{ display: 'flex', gap: '10px', marginBottom: '1.5rem', background: 'rgba(255,255,255,0.05)', padding: '5px', borderRadius: '10px' }}>
-                    <button 
-                        className={`btn-ghost-d ${view === 'businesses' ? 'active-tab' : ''}`} 
+                    <button
+                        className={`btn-ghost-d ${view === 'businesses' ? 'active-tab' : ''}`}
                         onClick={() => setView('businesses')}
                         style={{ flex: 1, padding: '10px', borderRadius: '8px', border: 'none', color: '#000' }}
                     >
-                        <i className="fa-solid fa-store" style={{marginRight: '8px'}}></i> Businesses
+                        <i className="fa-solid fa-store" style={{ marginRight: '8px' }}></i> Businesses
                     </button>
-                    <button 
-                        className={`btn-ghost-d ${view === 'products' ? 'active-tab' : ''}`} 
+                    <button
+                        className={`btn-ghost-d ${view === 'products' ? 'active-tab' : ''}`}
                         onClick={() => setView('products')}
                         style={{ flex: 1, padding: '10px', borderRadius: '8px', border: 'none', color: '#000' }}
                     >
-                        <i className="fa-solid fa-bag-shopping" style={{marginRight: '8px'}}></i> Products
+                        <i className="fa-solid fa-bag-shopping" style={{ marginRight: '8px' }}></i> Products
                     </button>
                 </div>
 
                 <form onSubmit={handleSearch} className="search-bar">
                     <div className="search-wrap">
                         <i className="fa-solid fa-magnifying-glass"></i>
-                        <input 
-                            className="search-input" 
-                            type="text" 
-                            placeholder={`Search ${view === 'businesses' ? 'businesses, services…' : 'products, collections…'}`} 
-                            value={searchQuery} 
-                            onChange={e => setSearchQuery(e.target.value)} 
+                        <input
+                            className="search-input"
+                            type="text"
+                            placeholder={`Search ${view === 'businesses' ? 'businesses, services…' : 'products, collections…'}`}
+                            value={searchQuery}
+                            onChange={e => setSearchQuery(e.target.value)}
                         />
                         {searchQuery && (
                             <i className="fa-solid fa-xmark clear-icon" onClick={clearSearch}></i>
@@ -218,28 +235,48 @@ function Explore({ onChatClick, onBizClick }) {
                 <div className="sec-head"><i className="fa-solid fa-grid-2"></i> Browse Categories</div>
                 <div className="cat-scroll">
                     <CategoryCard icon="fa-solid fa-th" label="All"
-                        active={selectedCategory === 'All'} onClick={() => setSelectedCategory('All')} />
-                    {CATEGORIES.map((c) => (
+                        active={selectedCategory === 'All'} onClick={() => { setSelectedCategory('All'); setView('businesses'); }} />
+                    <CategoryCard icon="fa-solid fa-bolt" label="Hot Pulse"
+                        active={selectedCategory === 'Hot Pulse'} onClick={() => { setSelectedCategory('Hot Pulse'); setView('products'); }} />
+                    {CATEGORIES.slice(1).map((c) => (
                         <CategoryCard key={c.label} icon={c.icon} label={c.label}
-                            active={selectedCategory === c.label} onClick={() => setSelectedCategory(c.label)} />
+                            active={selectedCategory === c.label} onClick={() => { setSelectedCategory(c.label); setView('products'); }} />
                     ))}
                 </div>
             </div>
 
             {/* Suggested / Trending Section */}
             {view === 'products' && trendingProducts.length > 0 && (
-                <div className="trending-sec" style={{marginTop: '2rem'}}>
+                <div className="trending-sec" style={{ marginTop: '2rem' }}>
                     <div className="sec-head">
-                        <i className="fa-solid fa-fire" style={{color: '#ff4d4d'}}></i> Trending Now 
+                        <i className="fa-solid fa-fire" style={{ color: '#ff4d4d' }}></i> Trending Now
                         <span className="badge-ai">AI Predicted Potential</span>
                     </div>
                     <div className="trending-scroll">
                         {trendingProducts.slice(0, 5).map(rec => {
-                            const p = products.find(prod => (prod.id || prod._id) == rec.product_id);
+                            const p = products.find(prod => (prod.id || prod._id || '').toString() === (rec.product_id || rec._id || '').toString());
                             if (!p) return null;
                             return (
-                                <div key={p._id} className="trend-item" onClick={() => handleViewProduct(p._id)}>
-                                    <img src={p.images?.[0]?.url || ''} alt={p.name} />
+                                <div key={p._id || p.id} className="trend-item" onClick={() => handleViewProduct(p._id || p.id)}>
+                                    {p.video?.url ? (
+                                        <video
+                                            src={p.video.url}
+                                            muted
+                                            onMouseOver={(e) => {
+                                                const playPromise = e.target.play();
+                                                if (playPromise !== undefined) {
+                                                    playPromise.catch(() => {});
+                                                }
+                                            }}
+                                            onMouseOut={(e) => { 
+                                                e.target.pause(); 
+                                                e.target.currentTime = 0; 
+                                            }}
+                                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                        />
+                                    ) : (
+                                        <img src={p.images?.[0]?.url || ''} alt={p.name} />
+                                    )}
                                     <div className="trend-overlay">
                                         <div className="trend-info">
                                             <span className="trend-cat">{p.category}</span>
@@ -269,13 +306,13 @@ function Explore({ onChatClick, onBizClick }) {
                 </div>
 
                 {searching ? (
-                    <div style={{textAlign: 'center', padding: '3rem', color: 'var(--muted)'}}>Searching...</div>
+                    <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--muted)' }}>Searching...</div>
                 ) : (
                     <div className={view === 'businesses' ? "biz-grid" : "product-grid-c"}>
                         {view === 'businesses' ? (
                             vendors.map((b, i) => (
-                                <BusinessCard 
-                                    key={b.id} 
+                                <BusinessCard
+                                    key={b.id}
                                     business={{
                                         ...b,
                                         icon: b.businessName?.charAt(0),
@@ -288,25 +325,49 @@ function Explore({ onChatClick, onBizClick }) {
                                         desc: 'Premium quality services.',
                                         wa: `https://wa.me/${b.phone}`,
                                         ig: '#'
-                                    }} 
-                                    onView={() => onBizClick(b.id)} 
-                                    onChat={() => onChatClick(b.id, b.businessName)} 
+                                    }}
+                                    onView={() => onBizClick(b.id)}
+                                    onChat={() => onChatClick(b.id, b.businessName)}
                                     isSaved={savedVendors.includes(b.id)}
                                     onToggleSave={() => handleToggleSave(b)}
                                 />
 
                             ))
                         ) : (
-                            products.map((p) => (
-                                <div key={p._id} className="p-card-c" onClick={() => handleViewProduct(p._id)}>
+                            Array.from(new Map(products.map(p => [(p._id || p.id).toString(), p])).values()).map((p) => (
+                                <div key={(p._id || p.id).toString()} className="p-card-c" onClick={() => { handleViewProduct(p._id || p.id); onBizClick?.(p.vendorToken); }}>
                                     <div className="p-card-img">
-                                        {p.images && p.images[0] ? (
+                                        {p.video?.url ? (
+                                            <video
+                                                src={p.video.url}
+                                                muted
+                                                onMouseOver={(e) => {
+                                                    const playPromise = e.target.play();
+                                                    if (playPromise !== undefined) {
+                                                        playPromise.catch(() => {});
+                                                    }
+                                                }}
+                                                onMouseOut={(e) => { 
+                                                    e.target.pause(); 
+                                                    e.target.currentTime = 0; 
+                                                }}
+                                                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                            />
+                                        ) : p.images && p.images[0] ? (
                                             <img src={p.images[0].url} alt={p.name} />
                                         ) : (
                                             <div className="p-placeholder">📸</div>
                                         )}
                                         <div className="p-price-tag">₹{p.price}</div>
-                                        {trendingProducts.some(r => r.product_id == p._id) && (
+                                        {p.velocity > 5 && (
+                                            <div className="p-pop-badge" style={{ background: '#6366f1' }}>
+                                                <i className="fa-solid fa-bolt"></i> High Velocity
+                                            </div>
+                                        )}
+                                        {p.views > 10 && !p.velocity && (
+                                            <div className="p-pop-badge"><i className="fa-solid fa-fire"></i> Most Popular</div>
+                                        )}
+                                        {trendingProducts.some(r => ((r.product_id || r._id || '').toString() === (p._id || p.id || '').toString()) && (r.rank <= 3)) && (
                                             <div className="p-trend-badge"><i className="fa-solid fa-chart-line"></i> High Potential</div>
                                         )}
 
@@ -315,10 +376,10 @@ function Explore({ onChatClick, onBizClick }) {
                                         <h4>{p.name}</h4>
                                         <p>{p.description || 'No description available'}</p>
                                         <span className="p-cat-badge">{p.category}</span>
-                                        
+
                                         <div className="p-interaction">
-                                            <button className="p-i-btn" onClick={(e) => handleLike(p._id, e)}>
-                                                <i className={`fa-${p.likes?.includes(useAppData().currentUser?.id) ? 'solid' : 'regular'} fa-heart`}></i> 
+                                            <button className="p-i-btn" onClick={(e) => handleLike(p._id || p.id, e)}>
+                                                <i className={`fa-${p.likes?.includes(useAppData().currentUser?.id) ? 'solid' : 'regular'} fa-heart`}></i>
                                                 <span>{p.likes?.length || 0}</span>
                                             </button>
                                             <button className="p-i-btn">
@@ -326,14 +387,19 @@ function Explore({ onChatClick, onBizClick }) {
                                                 <span>{p.comments?.length || 0}</span>
                                             </button>
                                             <div className="p-views">
-                                                <i className="fa-regular fa-eye"></i> {p.views || 0}
+                                                <i className="fa-regular fa-eye"></i> {localViews[p._id || p.id] !== undefined ? localViews[p._id || p.id] : (p.views || 0)}
                                             </div>
+                                            {p.velocity > 0 && (
+                                                <div className="p-pulse" title="Engagement velocity in the last 48h">
+                                                    <i className="fa-solid fa-bolt"></i> {p.velocity}
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
                                 </div>
                             ))
                         )}
-                        
+
                         {(view === 'businesses' ? vendors : products).length === 0 && (
                             <div style={{ gridColumn: '1/-1', textAlign: 'center', padding: '3rem', color: 'var(--muted)' }}>
                                 No results found for "{searchQuery}"
@@ -382,7 +448,9 @@ function Explore({ onChatClick, onBizClick }) {
                 .p-i-btn { background: transparent; border: none; color: var(--muted); display: flex; align-items: center; gap: 5px; font-size: 0.85rem; cursor: pointer; transition: color 0.2s; }
                 .p-i-btn:hover { color: white; }
                 .p-i-btn i.fa-solid { color: #ff4d4d; }
-                .p-views { margin-left: auto; font-size: 0.8rem; color: var(--muted); opacity: 0.6; }
+                .p-views { margin-left: auto; font-size: 0.8rem; color: var(--indigo-lt); font-weight: 600; display: flex; align-items: center; gap: 4px; background: rgba(99,102,241,0.05); padding: 2px 8px; border-radius: 10px; }
+                .p-pulse { font-size: 0.8rem; color: #ff9800; font-weight: 600; display: flex; align-items: center; gap: 4px; background: rgba(255,152,0,0.05); padding: 2px 8px; border-radius: 10px; }
+                .p-pop-badge { position: absolute; top: 10px; left: 10px; background: #ff9800; color: white; padding: 2px 8px; border-radius: 4px; font-size: 0.65rem; font-weight: bold; box-shadow: 0 2px 8px rgba(255,152,0,0.4); }
                 
                 .search-wrap { position: relative; flex: 1; display: flex; align-items: center; background: #fdfdfd; border-radius: 12px; padding: 0 1rem; border: 1px solid rgba(255,255,255,0.1); transition: all 0.2s; }
                 .search-wrap:focus-within { border-color: var(--indigo-lt); background: #ffffff; box-shadow: 0 0 0 3px rgba(99,102,241,0.1); }
@@ -433,8 +501,9 @@ function Explore({ onChatClick, onBizClick }) {
 function Feed({ onChatClick, onBizClick }) {
     const { currentUser, trendingProducts, fetchTrending } = useAppData();
     const [products, setProducts] = useState([]);
-
     const [loading, setLoading] = useState(true);
+    const [commentingOn, setCommentingOn] = useState(null);
+    const [commentText, setCommentText] = useState('');
 
     const fetchFeed = async () => {
         try {
@@ -442,7 +511,7 @@ function Feed({ onChatClick, onBizClick }) {
                 fetch("http://localhost:5000/products"),
                 fetch("http://localhost:5000/saved-vendors", { credentials: "include" })
             ]);
-            
+
             if (pRes.ok) {
                 const pData = await pRes.json();
                 setProducts(pData.products);
@@ -456,35 +525,69 @@ function Feed({ onChatClick, onBizClick }) {
         } catch (e) { console.error("Feed Fetch Error:", e); }
         finally { setLoading(false); }
     };
-    
+
     // Define savedVendors state for the feed specifically (or use a global hook better)
     const [savedVendors, setSavedVendors] = useState([]);
+    const [localViews, setLocalViews] = useState({});
 
     useEffect(() => { fetchFeed(); }, []);
 
     const handleToggleSave = async (vendorId) => {
         const isCurrentlySaved = savedVendors.includes(vendorId);
-        const url = isCurrentlySaved 
-            ? `http://localhost:5000/unsave-vendor/${vendorId}` 
+        const url = isCurrentlySaved
+            ? `http://localhost:5000/unsave-vendor/${vendorId}`
             : `http://localhost:5000/save-vendor/${vendorId}`;
-        
+
         try {
-            const res = await fetch(url, { 
-                method: isCurrentlySaved ? 'DELETE' : 'POST', 
-                credentials: "include" 
+            const res = await fetch(url, {
+                method: isCurrentlySaved ? 'DELETE' : 'POST',
+                credentials: "include"
             });
             if (res.ok) fetchFeed();
         } catch (e) { console.log(e) }
     }
 
     const handleLike = async (productId) => {
+        if (!productId) return console.warn("Missing product ID for feed like");
         try {
-            const res = await fetch(`http://localhost:5000/product/like/${productId}`, { 
-                method: 'POST', 
-                credentials: "include" 
+            const res = await fetch(`http://localhost:5000/product/like/${productId}`, {
+                method: 'POST',
+                credentials: "include"
             });
             if (res.ok) fetchFeed();
         } catch (e) { console.log(e) }
+    };
+
+    const handleComment = async (productId) => {
+        if (!commentText.trim()) return;
+        try {
+            const res = await fetch(`http://localhost:5000/product/comment/${productId}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({ text: commentText })
+            });
+            if (res.ok) {
+                setCommentText('');
+                setCommentingOn(null);
+                fetchFeed();
+            }
+        } catch (e) { console.error(e); }
+    };
+
+    const handleShare = (product) => {
+        const url = `${window.location.origin}/product/${product._id || product.id}`;
+        navigator.clipboard.writeText(url);
+        alert("Product link copied to clipboard! You can now share it.");
+    };
+
+    const handleView = (productId) => {
+        console.log("Incrementing view for feed product:", productId);
+        setLocalViews(prev => ({ ...prev, [productId]: (prev[productId] || products.find(p => (p._id || p.id) === productId)?.views || 0) + 1 }));
+        fetch(`http://localhost:5000/product/view/${productId}`, { method: 'PATCH' })
+            .then(res => res.json())
+            .then(data => console.log("Feed view count update success:", data))
+            .catch(e => console.error("Feed view count update failed:", e));
     };
 
     // Sort products based on AI recommendations if available
@@ -498,19 +601,20 @@ function Feed({ onChatClick, onBizClick }) {
     return (
         <div className="content">
             <div className="sec-head">
-                <i className="fa-solid fa-rss" style={{color: 'var(--accent)'}}></i> Personalised Feed
+                <i className="fa-solid fa-rss" style={{ color: 'var(--accent)' }}></i> Personalised Feed
                 <span className="badge-ai">AI Ranked</span>
             </div>
-            
+
             {loading ? (
-                <div style={{textAlign: 'center', padding: '3rem'}}>Loading your personalized feed...</div>
+                <div style={{ textAlign: 'center', padding: '3rem' }}>Loading your personalized feed...</div>
             ) : (
                 <div className="feed-container">
-                    {sortedProducts.map((p) => (
-                        <div key={p._id} className="feed-post card">
+                    {/* Deduplicate products to prevent key collisions */}
+                    {Array.from(new Map(sortedProducts.map(p => [(p._id || p.id).toString(), p])).values()).map((p) => (
+                        <div key={(p._id || p.id).toString()} className="feed-post card">
                             <div className="post-header">
-                                <div className="post-avatar" onClick={() => onBizClick(p.vendorToken)} style={{cursor: 'pointer'}}>{p.category?.charAt(0)}</div>
-                                <div className="post-meta" onClick={() => onBizClick(p.vendorToken)} style={{cursor: 'pointer'}}>
+                                <div className="post-avatar" onClick={() => { handleView(p._id || p.id); onBizClick(p.vendorToken); }} style={{ cursor: 'pointer' }}>{p.category?.charAt(0)}</div>
+                                <div className="post-meta" onClick={() => { handleView(p._id || p.id); onBizClick(p.vendorToken); }} style={{ cursor: 'pointer' }}>
                                     <div className="post-vendor">{p.category} Specialist</div>
                                     <div className="post-time">Posted recently</div>
                                 </div>
@@ -532,14 +636,20 @@ function Feed({ onChatClick, onBizClick }) {
                                     </div>
                                 </div>
                             </div>
-                            
-                            <div className="post-content">
+
+                            <div className="post-content" onClick={() => { handleView(p._id || p.id); onBizClick(p.vendorToken); }} style={{ cursor: 'pointer' }}>
                                 <h3>{p.name}</h3>
                                 <p>{p.description}</p>
                             </div>
 
-                            <div className="post-media">
-                                {p.images && p.images[0] ? (
+                            <div className="post-media" onClick={() => { handleView(p._id || p.id); onBizClick(p.vendorToken); }} style={{ cursor: 'pointer' }}>
+                                {p.video?.url ? (
+                                    <video
+                                        src={p.video.url}
+                                        controls
+                                        style={{ width: '100%', maxHeight: '500px', objectFit: 'contain' }}
+                                    />
+                                ) : p.images && p.images[0] ? (
                                     <img src={p.images[0].url} alt={p.name} />
                                 ) : (
                                     <div className="media-placeholder"><i className="fa-solid fa-image"></i></div>
@@ -549,25 +659,50 @@ function Feed({ onChatClick, onBizClick }) {
 
                             <div className="post-footer">
                                 <div className="post-actions">
-                                    <button className={`post-action-btn ${p.likes?.includes(currentUser?.id) ? 'liked' : ''}`} onClick={() => handleLike(p._id)}>
+                                    <button className={`post-action-btn ${p.likes?.includes(currentUser?.id) ? 'liked' : ''}`} onClick={() => handleLike(p._id || p.id)}>
                                         <i className={`fa-${p.likes?.includes(currentUser?.id) ? 'solid' : 'regular'} fa-heart`}></i>
                                         <span>{p.likes?.length || 0}</span>
                                     </button>
-                                    <button className="post-action-btn">
+                                    <button className={`post-action-btn ${commentingOn === (p._id || p.id) ? 'active' : ''}`} onClick={() => setCommentingOn(commentingOn === (p._id || p.id) ? null : (p._id || p.id))}>
                                         <i className="fa-regular fa-comment"></i>
                                         <span>{p.comments?.length || 0}</span>
                                     </button>
-                                    <button className="post-action-btn">
+                                    <button className="post-action-btn" onClick={() => handleShare(p)}>
                                         <i className="fa-solid fa-share-nodes"></i>
                                     </button>
                                 </div>
                                 <div className="post-views">
-                                    <i className="fa-regular fa-eye"></i> {p.views || 0} views
+                                    <i className="fa-regular fa-eye"></i> {localViews[p._id || p.id] !== undefined ? localViews[p._id || p.id] : (p.views || 0)} views
                                 </div>
                             </div>
+
+                            {/* Comment Section */}
+                            {commentingOn === (p._id || p.id) && (
+                                <div className="post-comments-area">
+                                    <div className="comments-list">
+                                        {p.comments && p.comments.length > 0 ? p.comments.slice(-3).map((c, idx) => (
+                                            <div key={idx} className="comment-item">
+                                                <strong>{c.name}:</strong> {c.text}
+                                            </div>
+                                        )) : (
+                                            <div className="no-comments">No comments yet. Be the first!</div>
+                                        )}
+                                    </div>
+                                    <div className="comment-input-wrap">
+                                        <input
+                                            type="text"
+                                            placeholder="Write a comment..."
+                                            value={commentText}
+                                            onChange={(e) => setCommentText(e.target.value)}
+                                            onKeyPress={(e) => e.key === 'Enter' && handleComment(p._id || p.id)}
+                                        />
+                                        <button onClick={() => handleComment(p._id || p.id)}>Post</button>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     ))}
-                    
+
                     {sortedProducts.length === 0 && (
                         <div className="empty-feed">
                             <i className="fa-solid fa-box-open"></i>
@@ -576,7 +711,7 @@ function Feed({ onChatClick, onBizClick }) {
                     )}
                 </div>
             )}
-            
+
             <style>{`
                 .feed-container { display: flex; flex-direction: column; gap: 25px; max-width: 600px; margin: 0 auto; }
                 .feed-post { padding: 0 !important; overflow: hidden; border: 1px solid rgba(255,255,255,0.05); }
@@ -607,9 +742,21 @@ function Feed({ onChatClick, onBizClick }) {
                 .post-footer { padding: 12px 15px; border-top: 1px solid rgba(255,255,255,0.05); display: flex; align-items: center; justify-content: space-between; }
                 .post-actions { display: flex; gap: 20px; }
                 .post-action-btn { background: transparent; border: none; color: var(--muted); display: flex; align-items: center; gap: 8px; font-size: 1rem; cursor: pointer; transition: all 0.2s; }
-                .post-action-btn:hover { color: white; transform: scale(1.1); }
+                 .post-action-btn:hover { color: white; transform: scale(1.1); }
                 .post-action-btn.liked { color: #ff4d4d; }
+                .post-action-btn.active { color: var(--indigo-lt); }
                 .post-views { font-size: 0.8rem; color: var(--muted); opacity: 0.7; }
+                
+                .post-comments-area { padding: 15px; border-top: 1px solid rgba(0,0,0,0.05); background: rgba(0,0,0,0.02); }
+                .comments-list { margin-bottom: 12px; display: flex; flex-direction: column; gap: 8px; }
+                .comment-item { font-size: 0.85rem; color: #333; }
+                .comment-item strong { color: #000; margin-right: 5px; }
+                .no-comments { font-size: 0.8rem; color: #999; font-style: italic; }
+                
+                .comment-input-wrap { display: flex; gap: 10px; }
+                .comment-input-wrap input { flex: 1; border: 1px solid #ddd; border-radius: 20px; padding: 8px 15px; font-size: 0.85rem; outline: none; }
+                .comment-input-wrap input:focus { border-color: var(--indigo-lt); }
+                .comment-input-wrap button { background: var(--indigo-lt); color: white; border: none; border-radius: 20px; padding: 0 15px; font-size: 0.85rem; font-weight: 600; cursor: pointer; }
                 
                 .empty-feed { text-align: center; padding: 5rem 0; color: var(--muted); }
                 .empty-feed i { font-size: 4rem; opacity: 0.1; margin-bottom: 1rem; }
@@ -630,7 +777,7 @@ function BusinessView({ vendorId, onBack, onChatClick }) {
                 fetch(`http://localhost:5000/vendors`), // We don't have a single vendor fetch yet, so we filter
                 fetch(`http://localhost:5000/products`)
             ]);
-            
+
             if (vRes.ok) {
                 const vData = await vRes.json();
                 const found = vData.vendors.find(v => v._id === vendorId);
@@ -651,19 +798,26 @@ function BusinessView({ vendorId, onBack, onChatClick }) {
 
     return (
         <div className="content">
-            <button className="btn-ghost-sm" onClick={onBack} style={{marginBottom: '1rem'}}>
+            <button className="btn-ghost-sm" onClick={onBack} style={{ marginBottom: '1rem' }}>
                 <i className="fa-solid fa-arrow-left"></i> Back to Explore
             </button>
-            
+
             <div className="card biz-profile-card">
-                <div className="biz-banner" style={{background: 'var(--indigo-lt)', height: '100px', borderRadius: '10px 10px 0 0', position: 'relative'}}>
+                <div className="biz-banner" style={{ background: 'var(--indigo-lt)', height: '100px', borderRadius: '10px 10px 0 0', position: 'relative' }}>
                     <div className="biz-p-avatar">{vendor?.BusinessName?.charAt(0)}</div>
                 </div>
-                <div className="biz-p-body" style={{padding: '50px 20px 20px 20px'}}>
+                <div className="biz-p-body" style={{ padding: '50px 20px 20px 20px' }}>
                     <div className="biz-p-head">
                         <div>
                             <h2>{vendor?.BusinessName}</h2>
                             <p className="p-cat">{vendor?.category} · {vendor?.location || 'Local Business'}</p>
+                            <div className="biz-stats-row">
+                                <span className="b-stat"><i className="fa-solid fa-eye"></i> {vendor?.totalViews || 0} Total Reach</span>
+                                {vendor?.velocity > 0 && (
+                                    <span className="b-stat velocity-pulse-sm"><i className="fa-solid fa-bolt"></i> {vendor?.velocity} Pulse Score</span>
+                                )}
+                                <span className="b-stat"><i className="fa-solid fa-box"></i> {vendor?.itemsCount || 0} Portfolio Items</span>
+                            </div>
                         </div>
                         <button className="btn-primary-d" onClick={() => onChatClick(vendorId, vendor?.BusinessName)}>
                             <i className="fa-regular fa-comment-dots"></i> Message Now
@@ -672,28 +826,73 @@ function BusinessView({ vendorId, onBack, onChatClick }) {
                 </div>
             </div>
 
-            <div className="sec-head" style={{marginTop: '2rem'}}>Portfolio & Items</div>
-            <div className="product-grid-c">
-                {products.map(p => (
-                    <div key={p._id} className="p-card-c">
-                        <div className="p-card-img">
-                            <img src={p.images?.[0]?.url} alt={p.name} />
-                            <div className="p-price-tag">₹{p.price}</div>
+            <div className="sec-head" style={{ marginTop: '2rem' }}><i className="fa-solid fa-images"></i> Business Portfolio</div>
+            <div className="portfolio-gallery">
+                {products.length > 0 ? products.map(p => (
+                    <div key={p._id} className="gallery-item card">
+                        <div className="gallery-media">
+                            {p.video?.url ? (
+                                <video
+                                    src={p.video.url}
+                                    muted
+                                    onMouseOver={(e) => {
+                                        const playPromise = e.target.play();
+                                        if (playPromise !== undefined) {
+                                            playPromise.catch(() => {});
+                                        }
+                                    }}
+                                    onMouseOut={(e) => { 
+                                        e.target.pause(); 
+                                        e.target.currentTime = 0; 
+                                    }}
+                                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                />
+                            ) : (
+                                <img src={p.images?.[0]?.url} alt={p.name} />
+                            )}
+                            <div className="gallery-price">₹{p.price}</div>
                         </div>
-                        <div className="p-card-info">
-                            <h4>{p.name}</h4>
-                            <p>{p.description}</p>
+                        <div className="gallery-info">
+                             <h5>{p.name}</h5>
+                             <p>{p.description}</p>
                         </div>
                     </div>
-                ))}
+                )) : (
+                    <div className="empty-portfolio">
+                        <i className="fa-solid fa-box-open"></i>
+                        <p>No portfolio items yet.</p>
+                    </div>
+                )}
             </div>
 
             <style>{`
-                .biz-profile-card { padding: 0 !important; overflow: hidden; background: #fff !important; }
-                .biz-p-avatar { width: 80px; height: 80px; border-radius: 50%; background: #2a2d3e; border: 4px solid #fff; display: flex; align-items: center; justify-content: center; font-size: 2rem; font-weight: bold; color: white; position: absolute; bottom: -40px; left: 20px; }
-                .biz-p-head { display: flex; justify-content: space-between; align-items: center; }
-                .biz-p-head h2 { margin: 0; font-size: 1.5rem; color: #000; }
-                .p-cat { color: #555; margin-top: 5px; font-size: 0.9rem; }
+                .portfolio-gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; margin-top: 1rem; }
+                .gallery-item { padding: 0 !important; overflow: hidden; border: 1px solid rgba(0,0,0,0.05); transition: all 0.2s; }
+                .gallery-item:hover { transform: translateY(-5px); box-shadow: 0 10px 20px rgba(0,0,0,0.1); }
+                .gallery-media { height: 200px; position: relative; overflow: hidden; background: #000; }
+                .gallery-media img { width: 100%; height: 100%; object-fit: cover; }
+                .gallery-price { position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); color: white; padding: 2px 10px; border-radius: 12px; font-size: 0.8rem; font-weight: bold; }
+                .gallery-info { padding: 15px; }
+                .gallery-info h5 { margin: 0 0 5px 0; font-size: 1rem; color: #000; }
+                .gallery-info p { margin: 0; font-size: 0.85rem; color: #666; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+                .empty-portfolio { grid-column: 1 / -1; text-align: center; padding: 4rem 0; color: #999; }
+                .empty-portfolio i { font-size: 3rem; opacity: 0.1; margin-bottom: 1rem; }
+                
+                .biz-profile-card { padding: 0 !important; overflow: hidden; background: #fff !important; margin-bottom: 2rem; }
+                .biz-banner { background: var(--indigo-lt); height: 120px; border-radius: 10px 10px 0 0; position: relative; }
+                .biz-p-avatar { width: 90px; height: 90px; border-radius: 50%; background: #2a2d3e; border: 4px solid #fff; display: flex; align-items: center; justify-content: center; font-size: 2.22rem; font-weight: bold; color: white; position: absolute; bottom: -45px; left: 30px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+                .biz-p-body { padding: 60px 30px 30px 30px; }
+                .biz-p-head { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px; }
+                .biz-p-head h2 { margin: 0; font-size: 1.8rem; color: #000; }
+                .p-cat { color: #666; margin-top: 5px; font-size: 1rem; }
+                .biz-stats-row { display: flex; gap: 15px; margin-top: 15px; }
+                .b-stat { font-size: 0.8rem; color: var(--indigo-lt); font-weight: 600; background: rgba(99,102,241,0.08); padding: 4px 12px; border-radius: 20px; display: flex; align-items: center; gap: 6px; }
+                .velocity-pulse-sm { background: rgba(245,158,11,0.1) !important; color: #f59e0b !important; animation: pulse-v 2s infinite; }
+                @keyframes pulse-v {
+                    0% { box-shadow: 0 0 0 0 rgba(245,158,11,0.4); }
+                    70% { box-shadow: 0 0 0 8px rgba(245,158,11,0); }
+                    100% { box-shadow: 0 0 0 0 rgba(245,158,11,0); }
+                }
             `}</style>
         </div>
     );
@@ -728,7 +927,7 @@ function Profile({ user, setUser }) {
             } else {
                 setMessage("Failed to update");
             }
-        } catch(err) {
+        } catch (err) {
             setMessage("Server error");
         } finally {
             setLoading(false);
@@ -766,7 +965,7 @@ function Profile({ user, setUser }) {
                     setTimeout(() => setMessage(''), 3000);
                 }
             }
-        } catch (e) { 
+        } catch (e) {
             console.error(e);
             setMessage("Update failed");
         }
@@ -804,17 +1003,17 @@ function Profile({ user, setUser }) {
         <div className="content">
             <div className="card">
                 <div className="sec-head"><i className="fa-solid fa-user"></i> My Profile</div>
-                {message && <p style={{color: 'green', marginBottom: '1rem'}}>{message}</p>}
-                
+                {message && <p style={{ color: 'green', marginBottom: '1rem' }}>{message}</p>}
+
                 {!isEditing ? (
                     <div className="profile-hero-c">
                         <div className="p-avatar-wrap">
                             <div className="p-avatar" style={{ backgroundColor: '#fff', overflow: 'hidden' }}>
                                 {user.avatar?.url ? (
-                                    <img 
-                                        src={user.avatar.url} 
-                                        alt="Profile" 
-                                        style={{width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover'}}
+                                    <img
+                                        src={user.avatar.url}
+                                        alt="Profile"
+                                        style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }}
                                         onError={(e) => e.target.style.display = 'none'}
                                     />
                                 ) : null}
@@ -833,7 +1032,7 @@ function Profile({ user, setUser }) {
                         <div>
                             <div className="p-name">{user.FullName || "User Name"}</div>
                             <div className="p-meta">{user.Email || "email@example.com"} · {user.Phone || "0000000000"}</div>
-                            <div className="p-actions" style={{marginTop: '1rem'}}>
+                            <div className="p-actions" style={{ marginTop: '1rem' }}>
                                 <button className="btn-primary-d" onClick={() => setIsEditing(true)}>
                                     <i className="fa-solid fa-pen"></i> Edit Profile
                                 </button>
@@ -841,20 +1040,20 @@ function Profile({ user, setUser }) {
                         </div>
                     </div>
                 ) : (
-                    <form onSubmit={handleSave} style={{maxWidth: '400px'}}>
+                    <form onSubmit={handleSave} style={{ maxWidth: '400px' }}>
                         <div className="form-group-d">
                             <label className="form-label">Full Name</label>
-                            <input className="form-input-d" value={user.FullName || ''} onChange={(e) => setUser({...user, FullName: e.target.value})} required />
+                            <input className="form-input-d" value={user.FullName || ''} onChange={(e) => setUser({ ...user, FullName: e.target.value })} required />
                         </div>
                         <div className="form-group-d">
                             <label className="form-label">Email</label>
-                            <input type="email" className="form-input-d" value={user.Email || ''} onChange={(e) => setUser({...user, Email: e.target.value})} required />
+                            <input type="email" className="form-input-d" value={user.Email || ''} onChange={(e) => setUser({ ...user, Email: e.target.value })} required />
                         </div>
                         <div className="form-group-d">
                             <label className="form-label">Phone</label>
-                            <input type="tel" className="form-input-d" value={user.Phone || ''} onChange={(e) => setUser({...user, Phone: e.target.value})} required />
+                            <input type="tel" className="form-input-d" value={user.Phone || ''} onChange={(e) => setUser({ ...user, Phone: e.target.value })} required />
                         </div>
-                        <div style={{display: 'flex', gap: '10px', marginTop: '1rem'}}>
+                        <div style={{ display: 'flex', gap: '10px', marginTop: '1rem' }}>
                             <button type="submit" className="btn-primary-d" disabled={loading}>
                                 {loading ? 'Saving...' : 'Save Changes'}
                             </button>
@@ -930,9 +1129,9 @@ function Saved({ onChatClick, onBizClick }) {
 
     const handleRemove = async (bizId) => {
         try {
-            const res = await fetch(`http://localhost:5000/unsave-vendor/${bizId}`, { 
-                method: 'DELETE', 
-                credentials: "include" 
+            const res = await fetch(`http://localhost:5000/unsave-vendor/${bizId}`, {
+                method: 'DELETE',
+                credentials: "include"
             });
             if (res.ok) {
                 setSaved(prev => prev.filter(v => v._id !== bizId))
@@ -945,17 +1144,17 @@ function Saved({ onChatClick, onBizClick }) {
     return (
         <div className="content">
             <div className="sec-head"><i className="fa-solid fa-bookmark"></i> My Saved Businesses</div>
-            
+
             {saved.length === 0 ? (
-                <div className="card" style={{textAlign: 'center', padding: '3rem', color: 'var(--muted)'}}>
-                    <i className="fa-regular fa-bookmark" style={{fontSize: '3rem', marginBottom: '1rem', opacity: .2}}></i>
+                <div className="card" style={{ textAlign: 'center', padding: '3rem', color: 'var(--muted)' }}>
+                    <i className="fa-regular fa-bookmark" style={{ fontSize: '3rem', marginBottom: '1rem', opacity: .2 }}></i>
                     <p>You haven't saved any businesses yet.</p>
                 </div>
             ) : (
                 <div className="biz-grid">
                     {saved.map((v, i) => (
-                        <BusinessCard 
-                            key={v._id} 
+                        <BusinessCard
+                            key={v._id}
                             business={{
                                 id: v._id,
                                 name: v.BusinessName,
@@ -1031,7 +1230,7 @@ export default function CustomerDashboard() {
                 } else {
                     navigate('/customer-login');
                 }
-            } catch(e) { console.log(e) }
+            } catch (e) { console.log(e) }
         }
 
         const init = async () => {

@@ -1,10 +1,22 @@
-/* ─── Dashboard Layout — New Palette ─── */
+/* ─── Dashboard Layout — SmartSell Brand Palette ─── */
+:root {
+    --bg-main: #f2fdff;
+    --bg-card: rgba(255, 255, 255, 0.82);
+    --border-subtle: rgba(123, 187, 255, 0.25);
+    --border-active: #7bbbff;
+    --text-primary: #050f2a;
+    --text-muted: #4a5580;
+    --accent-primary: #7bbbff;
+    --accent-secondary: #b8a9ff;
+    --navy: #050f2a;
+}
+
+
 .sidebar {
     width: var(--sidebar-w);
     min-height: 100vh;
-    background: rgba(242, 253, 255, .95);
-    backdrop-filter: blur(20px);
-    border-right: 1.5px solid rgba(123, 187, 255, .22);
+    background: #ffffff;
+    border-right: 1px solid var(--border-subtle);
     display: flex;
     flex-direction: column;
     position: fixed;
@@ -12,8 +24,8 @@
     left: 0;
     z-index: 100;
     transition: transform var(--tr);
-    box-shadow: 2px 0 20px rgba(123, 187, 255, .12);
 }
+
 
 .sidebar-brand {
     padding: 1.4rem 1.2rem 1rem;
@@ -170,10 +182,9 @@
 }
 
 .topbar {
-    background: rgba(242, 253, 255, .85);
-    backdrop-filter: blur(16px);
-    border-bottom: 1.5px solid rgba(123, 187, 255, .2);
-    padding: .78rem 1.5rem;
+    background: #ffffff;
+    border-bottom: 1px solid var(--border-subtle);
+    padding: .85rem 1.5rem;
     display: flex;
     align-items: center;
     gap: .8rem;
@@ -181,6 +192,7 @@
     top: 0;
     z-index: 50;
 }
+
 
 .hamburger {
     display: none;
@@ -293,13 +305,19 @@
 }
 
 .card {
-    background: rgba(255, 255, 255, .72);
-    border: 1.5px solid rgba(123, 187, 255, .2);
-    border-radius: var(--radius);
-    padding: 1.3rem;
-    backdrop-filter: blur(12px);
-    box-shadow: 0 4px 20px rgba(123, 187, 255, .1);
+    background: var(--bg-card);
+    border: 1px solid var(--border-subtle);
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
 }
+
+.kpi-card {
+    background: var(--bg-card);
+    border-left: 4px solid var(--border-active);
+    padding: 1.25rem;
+}
+
 
 /* ─── Welcome Banner ─── */
 .dash-welcome {
@@ -338,74 +356,51 @@
     color: var(--muted);
 }
 
-/* ─── Stat Cards ─── */
+/* ─── Stat/KPI Cards ─── */
 .dash-stats {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 1.25rem;
-    margin-bottom: 2.5rem;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
 }
 
 .stat-card {
-    background: rgba(255, 255, 255, 0.88);
-    backdrop-filter: blur(20px);
-    border: 1.5px solid rgba(123, 187, 255, 0.25);
-    border-radius: var(--radius);
-    padding: 1.25rem;
+    background: var(--bg-card);
+    border: 1px solid var(--border-subtle);
+    border-radius: 12px;
+    padding: 1.5rem;
     display: flex;
-    align-items: center;
-    gap: 1.2rem;
-    transition: all var(--tr);
-    box-shadow: 0 4px 20px rgba(123, 187, 255, 0.12);
+    flex-direction: column;
+    gap: 0.5rem;
+    transition: all 0.2s ease;
+    backdrop-filter: blur(8px);
 }
 
 .stat-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 12px 30px rgba(123, 187, 255, 0.25);
-    border-color: var(--sky);
+    border-color: var(--accent-primary);
+    box-shadow: 0 4px 12px rgba(123, 187, 255, 0.15);
 }
 
-.stat-icon-w {
-    width: 52px;
-    height: 52px;
-    border-radius: 14px;
+.stat-top {
     display: flex;
+    justify-content: space-between;
     align-items: center;
-    justify-content: center;
-    font-size: 1.35rem;
-    flex-shrink: 0;
-}
-
-.stat-content {
-    flex: 1;
-    text-align: left;
 }
 
 .stat-val {
-    font-size: 1.8rem;
-    font-weight: 800;
-    background: linear-gradient(135deg, var(--sky-dark), var(--lav-dark));
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    font-family: 'Clash Display', sans-serif;
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: var(--navy);
+    margin-top: 0.25rem;
 }
 
 .stat-lbl {
-    font-size: .75rem;
-    color: var(--muted);
-    margin-top: .2rem;
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--text-muted);
 }
 
-.stat-delta {
-    font-size: .68rem;
-    color: var(--success);
-    margin-top: .25rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 3px;
-}
+
 
 /* ─── Quick Actions ─── */
 .dash-quick-actions {
@@ -645,6 +640,74 @@
     font-size: .75rem;
     color: var(--sky-dark);
 }
+
+/* ─── SaaS Message Elements ─── */
+.chat-line {
+    display: flex;
+    margin-bottom: 2rem;
+    width: 100%;
+}
+
+.chat-line.sent {
+    justify-content: flex-end;
+}
+
+.chat-line.received {
+    justify-content: flex-start;
+}
+
+.msg-wrapper {
+    max-width: 65%;
+    display: flex;
+    flex-direction: column;
+}
+
+.chat-line.sent .msg-wrapper {
+    align-items: flex-end;
+}
+
+.saas-bubble {
+    padding: 0.8rem 1rem;
+    border-radius: 14px;
+    font-size: 0.92rem;
+    line-height: 1.5;
+    position: relative;
+    word-break: break-word;
+}
+
+.is-sent {
+    background: #6366f1;
+    color: #ffffff;
+    border-bottom-right-radius: 2px;
+}
+
+.is-received {
+    background: #f1f5f9;
+    color: #1e293b;
+    border-bottom-left-radius: 2px;
+    border: 1px solid #e2e8f0;
+}
+
+.msg-sub-meta {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 4px;
+    font-size: 0.68rem;
+    color: #94a3b8;
+    font-weight: 500;
+}
+
+/* ─── Performance Summary ─── */
+.dash-performance-summary {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    padding-bottom: 1.5rem;
+    margin-bottom: 1.5rem;
+    border-bottom: 1px solid #f1f5f9;
+}
+
 
 /* ─── Social Cards ─── */
 .social-grid {

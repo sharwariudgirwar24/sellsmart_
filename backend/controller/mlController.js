@@ -63,7 +63,10 @@ export const getRecommendations = async (req, res) => {
         });
 
         // Send the current inventory to Python via stdin
-        pythonProcess.stdin.write(JSON.stringify(productInputs));
+        const inputData = {
+            current_products: productInputs
+        };
+        pythonProcess.stdin.write(JSON.stringify(inputData));
         pythonProcess.stdin.end();
 
     } catch (error) {

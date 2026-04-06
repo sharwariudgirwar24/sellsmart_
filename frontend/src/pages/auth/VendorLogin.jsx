@@ -39,7 +39,7 @@ export default function VendorLogin() {
             })
             const data = await response.json()
             if (response.ok) {
-                setAuth(data.vendor, 'vendor')
+                setAuth(data.user, 'vendor')
                 navigate("/vendor-dashboard")
             } else {
                 setError(data.message || "Login failed")

@@ -17,11 +17,36 @@ export default function UploadPost({ onSuccess }) {
     const handlePublish = async (e) => {
         e.preventDefault()
         setLoading(true)
-        // const formData = new FormData(e.target)
-        // formData.append('availability', availability)
-        // const res = await fetch('/api/vendor/posts', { method: 'POST', body: formData })
-        // if (res.ok) { onSuccess?.() }
-        setTimeout(() => { setLoading(false); onSuccess?.() }, 500) // remove after backend integration
+        
+        const form = e.target;
+        const formData = new FormData(form);
+        formData.append('availability', availability);
+        
+        // The file input is inside the div with id "upload-file"
+        const fileInput = document.getElementById('upload-file');
+        if (fileInput && fileInput.files[0]) {
+            formData.set('file', fileInput.files[0]);
+        }
+
+        try {
+            const res = await fetch('http://localhost:5000/product/upload', { 
+                method: 'POST', 
+                body: formData,
+                credentials: 'include'
+            });
+            
+            const data = await res.json();
+            if (res.ok) { 
+                onSuccess?.(); 
+            } else {
+                alert(data.message || "Upload failed");
+            }
+        } catch (error) {
+            console.error("Upload Error:", error);
+            alert("An error occurred during upload");
+        } finally {
+            setLoading(false);
+        }
     }
 
     return (
@@ -49,7 +74,11 @@ export default function UploadPost({ onSuccess }) {
                 </div>
 
                 <form onSubmit={handlePublish}>
-                    <div className="upload-zone">
+                    <div 
+                        className="upload-zone" 
+                        onClick={() => document.getElementById('upload-file').click()}
+                        style={{ cursor: 'pointer' }}
+                    >
                         <i className={`fa-solid ${uploadType === 'image' ? 'fa-image' : 'fa-video'}`}></i>
                         <strong>Click or drag to upload {uploadType === 'image' ? 'an image' : 'a video'}</strong>
                         <small>{uploadType === 'image' ? 'JPG, PNG, WEBP up to 10MB' : 'MP4, MOV up to 100MB'}</small>
@@ -59,6 +88,11 @@ export default function UploadPost({ onSuccess }) {
                             accept={uploadType === 'image' ? 'image/*' : 'video/*'}
                             style={{ display: 'none' }}
                             id="upload-file"
+                            onChange={(e) => {
+                                if (e.target.files[0]) {
+                                    alert(`Selected: ${e.target.files[0].name}`);
+                                }
+                            }}
                         />
                     </div>
 

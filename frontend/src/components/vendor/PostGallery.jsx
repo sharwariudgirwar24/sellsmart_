@@ -24,12 +24,29 @@ export default function PostGallery({ posts = [], onEdit, onDelete }) {
                 ) : (
                     <div className="portfolio-grid">
                         {posts.map((post, i) => (
-                            <div className="portfolio-item" key={post.id ?? i}>
-                                <div className="thumb">{post.icon}</div>
-                                <div className="item-type-badge">{post.label}</div>
+                            <div className="portfolio-item" key={post._id ?? post.id ?? i}>
+                                <div className="thumb">
+                                    {post.video?.url ? (
+                                        <video 
+                                            src={post.video.url} 
+                                            muted 
+                                            onMouseOver={(e) => e.target.play()} 
+                                            onMouseOut={(e) => { e.target.pause(); e.target.currentTime = 0; }}
+                                            className="portfolio-video"
+                                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                        />
+                                    ) : (
+                                        <img 
+                                            src={post.images?.[0]?.url || 'https://via.placeholder.com/300'} 
+                                            alt={post.name} 
+                                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                        />
+                                    )}
+                                </div>
+                                <div className="item-type-badge">{post.video?.url ? 'Video' : 'Photo'}</div>
                                 <div className="overlay">
-                                    <div className="caption">{post.caption}</div>
-                                    <div className="price-tag">{post.price}</div>
+                                    <div className="caption">{post.name || post.caption}</div>
+                                    <div className="price-tag">₹{post.price}</div>
                                 </div>
                                 <div className="item-actions">
                                     <button
@@ -43,7 +60,10 @@ export default function PostGallery({ posts = [], onEdit, onDelete }) {
                                         className="item-act-btn"
                                         title="Delete"
                                         style={{ color: 'var(--error)' }}
-                                        onClick={(e) => { e.stopPropagation(); onDelete?.(post); }}
+                                        onClick={(e) => { 
+                                            e.stopPropagation(); 
+                                            if(window.confirm("Delete this post?")) onDelete?.(post._id || post.id); 
+                                        }}
                                     >
                                         <i className="fa-solid fa-trash"></i>
                                     </button>

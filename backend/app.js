@@ -32,6 +32,7 @@ import { upload } from "./middleware/upload.js";
 import { getRecommendations } from "./controller/mlController.js";
 import { likeProduct, addComment, incrementView } from "./controller/productEngagementController.js";
 import { getTrendingProducts, getVendorRecommendations, getVendorInsights } from "./controller/analyticsController.js";
+import { getMyNotifications, markAsRead, markAllAsRead, deleteNotification } from "./controller/notificationController.js";
 
 
 
@@ -106,6 +107,13 @@ app.route("/recommendations").get(getRecommendations);
 app.route("/analytics/trending").get(getTrendingProducts);
 app.route("/analytics/recommendations").get(isAuthenticatedVendor, getVendorRecommendations);
 app.route("/analytics/insights").get(isAuthenticatedVendor, getVendorInsights);
+
+// Notification Routes
+app.route("/notifications").get(isAuthenticated, getMyNotifications);
+app.route("/notifications/read-all").patch(isAuthenticated, markAllAsRead);
+app.route("/notification/:id")
+  .patch(isAuthenticated, markAsRead)
+  .delete(isAuthenticated, deleteNotification);
 
 // error middleware
 

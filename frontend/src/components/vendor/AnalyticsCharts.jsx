@@ -19,15 +19,21 @@ export default function AnalyticsCharts({ posts = [], insights = null }) {
 
     // 2. Simulated Growth Trend (based on current totals) 
     // Usually would come from a per-day historical API
-    const trendData = [
-        { day: 'Mon', engagement: (insights?.engagementScore * 0.2).toFixed(1) },
-        { day: 'Tue', engagement: (insights?.engagementScore * 0.35).toFixed(1) },
-        { day: 'Wed', engagement: (insights?.engagementScore * 0.3).toFixed(1) },
-        { day: 'Thu', engagement: (insights?.engagementScore * 0.6).toFixed(1) },
-        { day: 'Fri', engagement: (insights?.engagementScore * 0.85).toFixed(1) },
-        { day: 'Sat', engagement: (insights?.engagementScore * 0.9).toFixed(1) },
-        { day: 'Sun', engagement: (insights?.engagementScore || 0).toFixed(1) },
-    ];
+    const baseScore = insights?.engagementScore || 
+                     ((insights?.totalViews || 0) * 0.1 + (insights?.totalLikes || 0) * 3 + (insights?.totalComments || 0) * 5) || 0;
+
+    const trendData = (insights?.velocity && insights.velocity.length > 0) 
+        ? insights.velocity 
+        : [
+            { day: 'Mon', engagement: Number((baseScore * 0.15).toFixed(1)) },
+            { day: 'Tue', engagement: Number((baseScore * 0.35).toFixed(1)) },
+            { day: 'Wed', engagement: Number((baseScore * 0.3).toFixed(1)) },
+            { day: 'Thu', engagement: Number((baseScore * 0.55).toFixed(1)) },
+            { day: 'Fri', engagement: Number((baseScore * 0.8).toFixed(1)) },
+            { day: 'Sat', engagement: Number((baseScore * 0.95).toFixed(1)) },
+            { day: 'Sun', engagement: Number(baseScore.toFixed(1)) },
+        ];
+
 
     // 3. Category Distribution (Pie Chart)
     const categoryCounts = posts.reduce((acc, p) => {
@@ -62,7 +68,8 @@ export default function AnalyticsCharts({ posts = [], insights = null }) {
                     Post Reach vs. Likes
                 </div>
                 <div style={{ width: '100%', height: '220px' }}>
-                    <ResponsiveContainer>
+                    <ResponsiveContainer width="99%" height={220}>
+
                         <BarChart data={barData} margin={{ top: 0, right: 0, left: -25, bottom: 0 }}>
                             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.1)" />
                             <XAxis dataKey="name" axisLine={false} tickLine={false} fontSize={10} tick={{ fill: '#888' }} />
@@ -86,7 +93,8 @@ export default function AnalyticsCharts({ posts = [], insights = null }) {
                     Engagement Velocity (Weekly)
                 </div>
                 <div style={{ width: '100%', height: '220px' }}>
-                    <ResponsiveContainer>
+                    <ResponsiveContainer width="99%" height={220}>
+
                         <AreaChart data={trendData} margin={{ top: 0, right: 0, left: -25, bottom: 0 }}>
                             <defs>
                                 <linearGradient id="colorEngage" x1="0" y1="0" x2="0" y2="1">
@@ -114,7 +122,8 @@ export default function AnalyticsCharts({ posts = [], insights = null }) {
                         Portfolio Distribution by Category
                     </div>
                     <div style={{ width: '100%', height: '180px', display: 'flex', alignItems: 'center' }}>
-                        <ResponsiveContainer>
+                        <ResponsiveContainer width="99%" height={180}>
+
                             <PieChart>
                                 <Pie
                                     data={pieData}

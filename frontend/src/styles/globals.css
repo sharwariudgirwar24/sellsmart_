@@ -24,9 +24,9 @@
     --card: rgba(255, 255, 255, 0.65);
 
     /* text */
-    --text: #050F2A;
-    --text-muted: #4a5580;
-    --muted: #6b7aaa;
+    --text: #050f2a;
+    --text-muted: #2f3a61;
+    --muted: #4e5a85;
 
     /* status */
     --success: #16a34a;
@@ -54,10 +54,10 @@ html {
 }
 
 body {
-    font-family: 'Inter', 'Clash Display', system-ui, sans-serif;
-    background: linear-gradient(135deg, #e8e4ff 0%, #d6eeff 45%, #f0f8ff 100%);
+    font-family: 'Space Grotesk', system-ui, sans-serif;
+    background: #fdfdfd;
     min-height: 100vh;
-    color: var(--text);
+    color: var(--navy);
     overflow-x: hidden;
     line-height: 1.6;
 }
@@ -68,7 +68,8 @@ h3,
 h4,
 h5,
 h6 {
-    font-family: 'Clash Display', 'Inter', system-ui, sans-serif;
+    font-family: 'Outfit', sans-serif;
+    font-weight: 800;
 }
 
 a {
@@ -138,8 +139,8 @@ button {
 .blob {
     position: absolute;
     border-radius: 50%;
-    filter: blur(72px);
-    opacity: 0.45;
+    filter: blur(54px);
+    opacity: 0.35;
     animation: floatBlob 12s ease-in-out infinite alternate;
 }
 

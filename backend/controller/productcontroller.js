@@ -1,4 +1,5 @@
 import { Product } from "../model/productmodel.js";
+import { Engagement } from "../model/engagementmodel.js";
 import fs from "fs";
 import path from "path";
 
@@ -23,6 +24,15 @@ export const getVendorProducts = async (req, res) => {
 // Create a new product (Product upload API)
 export const createProduct = async (req, res) => {
     try {
+        // Enforce media upload limit (max 10 products per vendor)
+        const vendorProductCount = await Product.countDocuments({ vendorToken: req.vendor._id.toString() });
+        if (vendorProductCount >= 10) {
+            return res.status(403).json({
+                success: false,
+                message: "Media upload limit reached. You can only maintain up to 10 active posts."
+            });
+        }
+
         const productData = {
             ...req.body,
             vendorToken: req.vendor._id.toString(),
@@ -36,10 +46,18 @@ export const createProduct = async (req, res) => {
 
         if (req.file) {
             const fileUrl = `${req.protocol}://${req.get('host')}/uploads/${req.file.filename}`;
-            productData.images.push({
-                public_id: req.file.filename,
-                url: fileUrl
-            });
+            
+            if (req.file.mimetype.startsWith('video/')) {
+                productData.video = {
+                    public_id: req.file.filename,
+                    url: fileUrl
+                };
+            } else {
+                productData.images.push({
+                    public_id: req.file.filename,
+                    url: fileUrl
+                });
+            }
         }
 
         const product = await Product.create(productData);
@@ -80,14 +98,18 @@ export const deleteProduct = async (req, res) => {
         // Delete images from filesystem
         product.images.forEach(img => {
             const filePath = path.join("uploads", img.public_id);
-            console.log("Attempting to delete image file:", filePath);
             if (fs.existsSync(filePath)) {
                 fs.unlinkSync(filePath);
-                console.log("File deleted successfully");
-            } else {
-                console.log("File not found on disk, skipping deletion");
             }
         });
+
+        // Delete video from filesystem
+        if (product.video && product.video.public_id) {
+            const videoPath = path.join("uploads", product.video.public_id);
+            if (fs.existsSync(videoPath)) {
+                fs.unlinkSync(videoPath);
+            }
+        }
 
         await product.deleteOne();
 
@@ -129,7 +151,7 @@ export const updateProduct = async (req, res) => {
         };
 
         if (req.file) {
-            console.log("New file uploaded for update, deleting old images...");
+            console.log("New file uploaded for update, deleting old assets...");
             // Delete old images
             product.images.forEach(img => {
                 const filePath = path.join("uploads", img.public_id);
@@ -138,11 +160,29 @@ export const updateProduct = async (req, res) => {
                 }
             });
 
+            // Delete old video
+            if (product.video && product.video.public_id) {
+                const videoPath = path.join("uploads", product.video.public_id);
+                if (fs.existsSync(videoPath)) {
+                    fs.unlinkSync(videoPath);
+                }
+            }
+
             const fileUrl = `${req.protocol}://${req.get('host')}/uploads/${req.file.filename}`;
-            updatedData.images = [{
-                public_id: req.file.filename,
-                url: fileUrl
-            }];
+            
+            if (req.file.mimetype.startsWith('video/')) {
+                updatedData.video = {
+                    public_id: req.file.filename,
+                    url: fileUrl
+                };
+                updatedData.images = []; // Clear images if it's now a video post
+            } else {
+                updatedData.images = [{
+                    public_id: req.file.filename,
+                    url: fileUrl
+                }];
+                updatedData.video = null; // Clear video if it's now an image post
+            }
         }
 
         product = await Product.findByIdAndUpdate(req.params.id, updatedData, {
@@ -187,9 +227,24 @@ export const getAllProducts = async (req, res) => {
 
         const products = await Product.find(query).sort({ createdAt: -1 });
 
+        // Calculate Velocity for each product (last 48 hours)
+        const fortyEightHoursAgo = new Date();
+        fortyEightHoursAgo.setHours(fortyEightHoursAgo.getHours() - 48);
+
+        const productsWithVelocity = await Promise.all(products.map(async (p) => {
+            const engagementCount = await Engagement.countDocuments({
+                productId: p._id,
+                createdAt: { $gte: fortyEightHoursAgo }
+            });
+            return {
+                ...p._doc,
+                velocity: engagementCount
+            };
+        }));
+
         res.status(200).json({
             success: true,
-            products,
+            products: productsWithVelocity,
         });
     } catch (error) {
         console.error("Get All Products Error:", error);

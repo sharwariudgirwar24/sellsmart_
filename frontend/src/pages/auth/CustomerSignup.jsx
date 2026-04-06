@@ -2,10 +2,12 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import Navbar from '../../components/shared/Navbar'
 import AnimatedBackground from '../../components/shared/AnimatedBackground'
+import { useAppData } from '../../context/AppDataContext'
 import '../../styles/auth.css'
 
 export default function CustomerSignup() {
     const navigate = useNavigate()
+    const { setAuth } = useAppData()
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState("")
     const [user, setUser] = useState({
@@ -39,6 +41,7 @@ export default function CustomerSignup() {
             })
             const data = await response.json()
             if (response.ok) {
+                setAuth(data.user, 'customer')
                 navigate("/customer-dashboard")
             } else {
                 setError(data.message || "Signup failed")

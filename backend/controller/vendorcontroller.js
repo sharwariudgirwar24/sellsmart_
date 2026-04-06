@@ -1,4 +1,6 @@
 import { Vendor } from "../model/vendormodel.js";
+import { Product } from "../model/productmodel.js";
+import { Engagement } from "../model/engagementmodel.js";
 import bcrypt from "bcrypt";
 import { sendToken } from "../utils/jwtToken.js";
 
@@ -84,9 +86,31 @@ export const getAllVendors = async (req, res) => {
         }
 
         const vendors = await Vendor.find(query).select("-password");
+
+        // Enhance results with product-based stats
+        const enrichedVendors = await Promise.all(vendors.map(async (v) => {
+            const vProducts = await Product.find({ vendorToken: v._id.toString() });
+            const totalViews = vProducts.reduce((acc, p) => acc + (p.views || 0), 0);
+            
+            const fortyEightHoursAgo = new Date();
+            fortyEightHoursAgo.setHours(fortyEightHoursAgo.getHours() - 48);
+
+            const velocityCount = await Engagement.countDocuments({
+                vendorToken: v._id.toString(),
+                createdAt: { $gte: fortyEightHoursAgo }
+            });
+
+            return {
+                ...v._doc,
+                totalViews,
+                velocity: velocityCount,
+                itemsCount: vProducts.length
+            };
+        }));
+
         res.status(200).json({
             success: true,
-            vendors,
+            vendors: enrichedVendors,
         });
     } catch (error) {
         console.error("Get All Vendors Error:", error);

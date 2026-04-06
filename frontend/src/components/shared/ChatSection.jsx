@@ -13,19 +13,20 @@ export default function ChatSection({ threads = [], avatarKey = 'initials', init
     const globalResults = useMemo(() => {
         if (!currentUser || currentUser.role !== 'customer') return [];
         return vendors.filter(v => {
-            const vid = v.id || v._id;
-            const hasThread = threads.some(t => t.id === vid);
+            const vid = (v.id || v._id).toString();
+            // String-safe comparison to prevent duplicate key errors
+            const hasThread = threads.some(t => t.id.toString() === vid);
             if (hasThread) return false;
 
             // Stay visible if it matches the initial ID or is currently active
-            if (initialThreadId === vid || activeThreadId === vid) return true;
+            if (initialThreadId?.toString() === vid || activeThreadId?.toString() === vid) return true;
 
             // Or if it matches search
             if (!searchQuery) return false;
             return (v.BusinessName || v.name)?.toLowerCase().includes(searchQuery.toLowerCase()) || 
                    (v.FullName || v.ownerName)?.toLowerCase().includes(searchQuery.toLowerCase());
         }).map(v => ({
-            id: v.id || v._id,
+            id: (v.id || v._id).toString(),
             name: v.BusinessName || v.FullName, 
             preview: 'Start a new conversation',
             initials: (v.BusinessName || v.FullName)?.charAt(0).toUpperCase(),
@@ -42,7 +43,9 @@ export default function ChatSection({ threads = [], avatarKey = 'initials', init
             return t.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
                 t.preview?.toLowerCase().includes(searchQuery.toLowerCase());
         });
-        return [...local, ...globalResults];
+        const combined = [...local, ...globalResults];
+        // Final safety layer: remove any accidental duplicates by ID
+        return Array.from(new Map(combined.map(item => [item.id.toString(), item])).values());
     }, [threads, searchQuery, globalResults]);
 
     // Set initial active thread if none selected or if initialThreadId forced
@@ -207,33 +210,42 @@ export default function ChatSection({ threads = [], avatarKey = 'initials', init
                             ) : (
                                 activeData.messages?.map((m, i) => {
                                     const isSent = m.senderRole === currentUser?.role;
+                                    const timeStr = m.time || new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                                    
                                     return (
-                                        <div key={m.id || i} className={`chat-msg ${isSent ? 'sent' : 'received'}`}>
-                                            <div className="bubble group-bubble">
-                                                {m.text}
-                                                {m.edited && <span className="msg-edited">(edited)</span>}
-
-                                                {isSent && currentUser?.role === 'vendor' && (
-                                                    <button
-                                                        className="edit-msg-btn"
-                                                        onClick={() => {
-                                                            const newText = prompt("Edit your message:", m.text);
-                                                            if (newText && newText.trim() !== m.text) {
-                                                                editMessage(activeData.id, m.id, newText.trim());
-                                                            }
-                                                        }}
-                                                    >
-                                                        <i className="fa-solid fa-pen"></i>
-                                                    </button>
-                                                )}
-                                            </div>
-                                            <div className="msg-meta">
-                                                {m.time}
-                                                {isSent && renderStatus(m.status)}
+                                        <div key={m.id || i} className={`chat-line ${isSent ? 'sent' : 'received'}`}>
+                                            <div className="msg-wrapper">
+                                                <div className={`bubble saas-bubble ${isSent ? 'is-sent' : 'is-received'}`}>
+                                                    {m.text}
+                                                    {m.edited && <span className="msg-edited">(edited)</span>}
+                                                    
+                                                    {isSent && currentUser?.role === 'vendor' && (
+                                                        <button 
+                                                            className="edit-msg-btn text-[10px] ml-2 opacity-50 hover:opacity-100"
+                                                            onClick={() => {
+                                                                const newText = prompt("Edit your message:", m.text);
+                                                                if (newText && newText.trim() !== m.text) {
+                                                                    editMessage(activeData.id, m.id, newText.trim());
+                                                                }
+                                                            }}
+                                                        >
+                                                            <i className="fa-solid fa-pen"></i>
+                                                        </button>
+                                                    )}
+                                                </div>
+                                                <div className="msg-sub-meta">
+                                                    <span className="msg-time-saas">{timeStr}</span>
+                                                    {isSent && (
+                                                        <span className={`status-icon-check ${m.status === 'seen' ? 'text-indigo-500' : 'text-slate-400'}`}>
+                                                            <i className={`fa-solid ${m.status === 'seen' ? 'fa-check-double' : 'fa-check'}`}></i>
+                                                        </span>
+                                                    )}
+                                                </div>
                                             </div>
                                         </div>
                                     );
                                 })
+
                             )}
 
                             {typingState[activeData.id] && (

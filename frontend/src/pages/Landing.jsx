@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import { motion } from 'framer-motion'
 import AnimatedBackground from '../components/shared/AnimatedBackground'
 import '../styles/landing.css'
 
@@ -17,146 +18,130 @@ function scrollToFeatures() {
 
 export default function Landing() {
     return (
-        <>
+        <div className="landing-root">
             <AnimatedBackground />
-            <div className="page">
-
-                {/* Navbar — logo only */}
-                <nav className="navbar">
-                    <div className="container nav-inner">
-                        <Link to="/" className="brand-logo">
-                            <div className="logo-icon-wrap">
-                                <i className="fa-solid fa-chart-line" style={{ color: '#fff' }}></i>
-                            </div>
-                            <span>SellSmart</span>
-                        </Link>
-                    </div>
-                </nav>
-
-                {/* Hero */}
-                <header className="hero">
-                    <div className="hero-content">
-                        {/* Logo above badge */}
-                        <div className="hero-logo">
-                            <div className="logo-icon-wrap" style={{ width: '58px', height: '58px', fontSize: '1.5rem' }}>
-                                <i className="fa-solid fa-chart-line" style={{ color: '#fff' }}></i>
-                            </div>
-                            <span style={{
-                                fontSize: '2.2rem', fontWeight: 800,
-                                background: 'linear-gradient(90deg, #818cf8, #c084fc)',
-                                WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text'
-                            }}>SellSmart</span>
+            
+            <nav className="navbar">
+                <div className="container nav-inner">
+                    <Link to="/" className="brand-logo">
+                        <div className="logo-icon-wrap">
+                            <i className="fa-solid fa-chart-line"></i>
                         </div>
+                        <span>SellSmart</span>
+                    </Link>
+                    <Link to="/role-select" className="btn-primary" style={{ padding: '0.8rem 1.6rem', fontSize: '0.9rem' }}>
+                        Start Selling
+                    </Link>
+                </div>
+            </nav>
+
+            <main className="page">
+                <section className="hero">
+                    <motion.div 
+                        initial={{ opacity: 0, y: 30 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.8, ease: "easeOut" }}
+                        className="hero-content"
+                    >
                         <div className="hero-badge">
-                            <i className="fa-solid fa-eye"></i>
-                            Because every business needs visibility
+                            🚀 The Marketplace for Local Talent
                         </div>
+                        
                         <h1>
                             Your Local Business,<br />
                             <span className="grad">Discovered Online</span>
                         </h1>
+                        
                         <p className="hero-sub">
-                            SellSmart connects micro-businesses with nearby customers. Upload your work,
-                            showcase your services, and let customers find and contact you instantly.
+                            SellSmart is the professional bridge between micro-businesses and local demand. 
+                            Showcase your portfolio, build trust, and grow your community footprint.
                         </p>
+                        
                         <div className="hero-actions">
-                            {/* Scrolls down to features */}
-                            <button className="btn-ghost" onClick={scrollToFeatures}>
-                                <i className="fa-solid fa-magnifying-glass"></i>
-                                Discover SellSmart
-                            </button>
-                            {/* Goes to auth role selector */}
                             <Link to="/role-select" className="btn-primary">
-                                <i className="fa-solid fa-rocket"></i>
-                                Get Started
+                                Launch Your Profile
                             </Link>
+                            <button className="btn-ghost" onClick={scrollToFeatures}>
+                                Learn How it Works
+                            </button>
                         </div>
-                    </div>
-                </header>
+                    </motion.div>
+                </section>
 
-                {/* Features — scroll target */}
                 <section id="features">
                     <div className="container">
-                        <div className="section-header">
-                            <span className="section-label">Features</span>
-                            <h2>Everything Your Business <span className="grad">Needs to Shine</span></h2>
-                            <p>From profile creation to customer connection — SellSmart gives local businesses the digital tools they deserve.</p>
-                        </div>
+                        <motion.div 
+                            initial={{ opacity: 0 }}
+                            whileInView={{ opacity: 1 }}
+                            viewport={{ once: true }}
+                            className="section-header"
+                        >
+                            <span className="section-label">Capabilities</span>
+                            <h2>Empowering Personal <span className="grad">Entrepreneurship</span></h2>
+                            <p>Everything you need to turn your local craft into a digital powerhouse.</p>
+                        </motion.div>
+                        
                         <div className="features-grid">
                             {features.map((f, i) => (
-                                <div className="feature-card" key={i}>
+                                <motion.div 
+                                    key={i}
+                                    initial={{ opacity: 0, y: 20 }}
+                                    whileInView={{ opacity: 1, y: 0 }}
+                                    viewport={{ once: true }}
+                                    transition={{ delay: i * 0.1 }}
+                                    className="feature-card"
+                                >
                                     <div className="feature-icon">
                                         <i className={f.icon}></i>
                                     </div>
                                     <h3>{f.title}</h3>
                                     <p>{f.desc}</p>
-                                </div>
+                                </motion.div>
                             ))}
                         </div>
                     </div>
                 </section>
 
-                {/* Why Section */}
-                <section className="why-section">
+                <section className="why-section" style={{ padding: '10rem 0' }}>
                     <div className="container">
-                        <div className="why-inner">
+                        <div className="why-inner" style={{ background: 'var(--navy)', borderRadius: '40px', padding: '5rem', color: 'white' }}>
                             <div className="why-text">
-                                <span className="section-label">Why SellSmart</span>
-                                <h2>Built for <span className="grad">Local Heroes</span></h2>
-                                <p>
-                                    Micro-businesses are the backbone of every community. Whether you're a tailor,
-                                    a baker, a photographer, or a beautician — you deserve a platform designed just for you.
-                                    SellSmart puts you on the digital map and connects you directly with customers in your area.
+                                <h2 style={{ color: 'white', fontSize: '3.5rem', marginBottom: '2rem' }}>Born for the <span style={{ color: 'var(--sky)' }}>Local Economy</span></h2>
+                                <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: '1.2rem', maxWidth: '600px' }}>
+                                    We believe micro-businesses are the heartbeat of neighborhoods. 
+                                    Tailors, bakers, artisans – you deserve a platform that treats your business 
+                                    with the professional respect it commands.
                                 </p>
                             </div>
-                            <div className="stats-glass">
+                            
+                            <div className="stats-glass" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: 'white' }}>
                                 <div className="stat-item">
-                                    <span className="stat-number">—</span>
-                                    <span className="stat-label">Businesses Listed</span>
+                                    <span className="stat-number" style={{ color: 'white' }}>2k+</span>
+                                    <span className="stat-label" style={{ color: 'rgba(255,255,255,0.5)' }}>Verified Partners</span>
                                 </div>
-                                <div className="stat-divider"></div>
+                                <div className="stat-divider" style={{ background: 'rgba(255,255,255,0.1)' }}></div>
                                 <div className="stat-item">
-                                    <span className="stat-number">—</span>
-                                    <span className="stat-label">Customers Connected</span>
-                                </div>
-                                <div className="stat-divider"></div>
-                                <div className="stat-item">
-                                    <span className="stat-number">24/7</span>
-                                    <span className="stat-label">Support</span>
+                                    <span className="stat-number" style={{ color: 'var(--sky)' }}>4.9/5</span>
+                                    <span className="stat-label" style={{ color: 'rgba(255,255,255,0.5)' }}>Trust Rating</span>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </section>
+            </main>
 
-                {/* CTA — no button, just text */}
-                <section>
-                    <div className="container">
-                        <div className="cta-box">
-                            <h2>Ready to Grow Your <span className="grad">Local Business?</span></h2>
-                            <p>Join thousands of micro-business owners who are already using SellSmart to reach more customers every day.</p>
+            <footer className="footer">
+                <div className="container footer-inner">
+                    <Link to="/" className="brand-logo" style={{ marginBottom: '1rem' }}>
+                        <div className="logo-icon-wrap" style={{ width: '36px', height: '36px', fontSize: '1rem' }}>
+                            <i className="fa-solid fa-chart-line"></i>
                         </div>
-                    </div>
-                </section>
-
-                {/* Footer */}
-                <footer className="footer">
-                    <div className="container footer-inner">
-                        <Link to="/" className="brand-logo">
-                            <div className="logo-icon-wrap" style={{ width: '34px', height: '34px', fontSize: '.9rem' }}>
-                                <i className="fa-solid fa-chart-line" style={{ color: '#fff' }}></i>
-                            </div>
-                            <span style={{ fontSize: '1.2rem' }}>SellSmart</span>
-                        </Link>
-                        <span className="footer-tagline">Connecting local businesses with nearby customers.</span>
-                        <div className="footer-copy">2026 SellSmart</div>
-                    </div>
-                </footer>
-
-            </div>
-        </>
+                        <span style={{ fontSize: '1.4rem' }}>SellSmart</span>
+                    </Link>
+                    <p className="footer-tagline">Digitizing the storefront for every micro-entrepreneur.</p>
+                    <div className="footer-copy">© 2026 SellSmart. All Rights Reserved.</div>
+                </div>
+            </footer>
+        </div>
     )
 }
-
-
-

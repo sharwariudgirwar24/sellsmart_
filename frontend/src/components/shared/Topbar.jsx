@@ -1,9 +1,13 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useAppData } from '../../context/AppDataContext'
 
 export default function Topbar({ title, subtitle, role = 'business', onMenuClick, user, onAvatarClick, onBack }) {
     const navigate = useNavigate()
+    const { notifications, markNotificationRead, markAllNotificationsRead, deleteNotification, logout: performLogout } = useAppData()
     
+    const unreadCount = notifications.filter(n => !n.isRead).length;
+
     const displayName = user?.FullName || (role === 'business' ? 'Business Account' : 'Customer Account');
     const initial = displayName.charAt(0).toUpperCase();
 
@@ -36,6 +40,16 @@ export default function Topbar({ title, subtitle, role = 'business', onMenuClick
         setShowSearch(false);
     }
 
+    const handleNotifClick = (notif) => {
+        markNotificationRead(notif._id);
+        if (notif.link) navigate(notif.link);
+        setShowNotif(false);
+    }
+
+    const handleLogout = () => {
+        performLogout();
+    }
+
     return (
         <header className="topbar">
             {/* Mobile hamburger */}
@@ -63,13 +77,58 @@ export default function Topbar({ title, subtitle, role = 'business', onMenuClick
                 <div style={{ position: 'relative' }}>
                     <button className="icon-btn" title="Notifications" onClick={toggleNotif}>
                         <i className="fa-solid fa-bell"></i>
-                        <span className="notif-dot"></span>
+                        {unreadCount > 0 && <span className="notif-dot">{unreadCount}</span>}
                     </button>
                     {showNotif && (
                         <div className="dropdown-menu notif-menu">
-                            <div className="dropdown-header">Notifications</div>
-                            <div className="dropdown-item" style={{ textAlign: 'center', color: 'var(--muted)', fontSize: '0.85rem' }}>
-                                No new notifications right now.
+                            <div className="dropdown-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <span>Notifications</span>
+                                {unreadCount > 0 && (
+                                    <button 
+                                        onClick={markAllNotificationsRead}
+                                        style={{ background: 'none', border: 'none', color: 'var(--sky)', fontSize: '0.7rem', cursor: 'pointer' }}
+                                    >
+                                        Mark all as read
+                                    </button>
+                                )}
+                            </div>
+                            <div className="notif-list-container" style={{ maxHeight: '350px', overflowY: 'auto' }}>
+                                {notifications.length === 0 ? (
+                                    <div className="dropdown-item" style={{ textAlign: 'center', color: 'var(--muted)', fontSize: '0.85rem' }}>
+                                        No notifications right now.
+                                    </div>
+                                ) : (
+                                    notifications.map((notif) => (
+                                        <div 
+                                            key={notif._id} 
+                                            className={`dropdown-item notif-item ${!notif.isRead ? 'unread' : ''}`}
+                                            onClick={() => handleNotifClick(notif)}
+                                            style={{ 
+                                                flexDirection: 'column', 
+                                                alignItems: 'flex-start', 
+                                                borderBottom: '1px solid rgba(255,255,255,0.05)',
+                                                position: 'relative'
+                                            }}
+                                        >
+                                            <div style={{ fontWeight: '600', fontSize: '0.9rem', color: notif.isRead ? 'var(--muted)' : 'white' }}>
+                                                {notif.title}
+                                            </div>
+                                            <div style={{ fontSize: '0.8rem', color: 'var(--muted)', marginTop: '2px' }}>
+                                                {notif.message}
+                                            </div>
+                                            <div style={{ fontSize: '0.65rem', color: 'var(--sky)', marginTop: '4px', opacity: 0.7 }}>
+                                                {new Date(notif.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} • {new Date(notif.createdAt).toLocaleDateString()}
+                                            </div>
+                                            {/* Delete button (small X) */}
+                                            <button 
+                                                onClick={(e) => { e.stopPropagation(); deleteNotification(notif._id); }}
+                                                style={{ position: 'absolute', top: '10px', right: '10px', background: 'none', border: 'none', color: 'rgba(255,255,255,0.2)', cursor: 'pointer' }}
+                                            >
+                                                <i className="fa-solid fa-xmark"></i>
+                                            </button>
+                                        </div>
+                                    ))
+                                )}
                             </div>
                         </div>
                     )}
@@ -87,7 +146,7 @@ export default function Topbar({ title, subtitle, role = 'business', onMenuClick
                             <div className="dropdown-header">{displayName}</div>
                             <button className="dropdown-item" onClick={onAvatarClick}><i className="fa-solid fa-user"></i> Profile</button>
                             <div style={{ borderTop: '1px solid rgba(255,255,255,0.1)', margin: '0.5rem 0' }}></div>
-                            <button className="dropdown-item text-error" onClick={() => navigate('/role-select')}><i className="fa-solid fa-right-from-bracket"></i> Logout</button>
+                            <button className="dropdown-item text-error" onClick={handleLogout}><i className="fa-solid fa-right-from-bracket"></i> Logout</button>
                         </div>
                     )}
                 </div>
@@ -206,6 +265,34 @@ export default function Topbar({ title, subtitle, role = 'business', onMenuClick
                 }
                 .dropdown-item:hover {
                     background: rgba(255,255,255,0.05);
+                }
+                .notif-item.unread {
+                    background: rgba(79, 70, 229, 0.1);
+                }
+                .notif-dot {
+                    position: absolute;
+                    top: -4px;
+                    right: -4px;
+                    background: #f43f5e;
+                    color: white;
+                    font-size: 0.6rem;
+                    min-width: 16px;
+                    height: 16px;
+                    padding: 0 4px;
+                    border-radius: 10px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    font-weight: bold;
+                    border: 2px solid #0f172a;
+                    box-shadow: 0 0 10px rgba(244, 63, 94, 0.4);
+                }
+                .notif-list-container::-webkit-scrollbar {
+                    width: 4px;
+                }
+                .notif-list-container::-webkit-scrollbar-thumb {
+                    background: rgba(255,255,255,0.1);
+                    border-radius: 4px;
                 }
                 .text-error { color: var(--error) !important; }
                 @keyframes slideDown {

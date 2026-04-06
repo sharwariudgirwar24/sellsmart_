@@ -88,8 +88,9 @@ export function AppDataProvider({ children }) {
                     const mRes = await fetch(`http://localhost:5000/chat/messages/${t._id}`, { credentials: "include" });
                     const mData = await mRes.json();
                     return {
-                        id: t._id,
-                        name: t.name || t._id.substring(0, 8),
+                        id: t._id.toString(),
+                        name: t.name || t._id.toString().substring(0, 8),
+                        initials: (t.name || '..').charAt(0).toUpperCase(),
                         preview: t.lastMessage,
                         time: new Date(t.lastTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
                         unread: 0,
@@ -98,7 +99,7 @@ export function AppDataProvider({ children }) {
                             senderRole: m.senderModel === 'User' ? 'customer' : 'vendor',
                             text: m.content,
                             time: new Date(m.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                            status: (m.senderModel === (currentUser.role === 'vendor' ? 'Vendor' : 'User')) ? 'delivered' : 'seen'
+                            status: (currentUser && m.senderModel === (currentUser.role === 'vendor' ? 'Vendor' : 'User')) ? 'delivered' : 'seen'
                         }))
                     };
 
@@ -115,9 +116,23 @@ export function AppDataProvider({ children }) {
             const res = await fetch("http://localhost:5000/vendors");
             if (res.ok) {
                 const data = await res.json();
-                setVendors(data.vendors);
+                const normalizedVendors = data.vendors.map(v => ({
+                    ...v,
+                    id: (v.id || v._id).toString()
+                }));
+                setVendors(normalizedVendors);
             }
         } catch (e) { console.log(e); }
+    };
+
+    const fetchNotifications = async () => {
+        try {
+            const res = await fetch("http://localhost:5000/notifications", { credentials: "include" });
+            if (res.ok) {
+                const data = await res.json();
+                setNotifications(data.notifications);
+            }
+        } catch (e) { console.log("Fetch Notifs Error:", e); }
     };
 
     // Socket connection
@@ -125,14 +140,17 @@ export function AppDataProvider({ children }) {
         if (currentUser) {
             fetchThreads();
             fetchVendors();
+            fetchNotifications();
             socket.connect();
 
 
-            socket.emit("authenticate", currentUser.id || currentUser._id);
+            socket.emit("authenticate", (currentUser.id || currentUser._id).toString());
             
             const handleMessage = (msg) => {
+                if (!currentUser) return;
                 setThreads(prev => {
-                    const threadId = msg.sender === (currentUser.id || currentUser._id) ? msg.receiver : msg.sender;
+                    const myId = (currentUser.id || currentUser._id).toString();
+                    const threadId = msg.sender.toString() === myId ? msg.receiver.toString() : msg.sender.toString();
                     const exists = prev.find(t => t.id === threadId);
                     
                     if (exists) {
@@ -147,11 +165,11 @@ export function AppDataProvider({ children }) {
                             }],
                             preview: msg.content,
                             time: 'Just now',
-                            unread: (msg.receiver === (currentUser.id || currentUser._id)) ? t.unread + 1 : t.unread
+                            unread: (msg.receiver.toString() === myId) ? t.unread + 1 : t.unread
                         } : t);
                     } else {
-                        // New thread - try to find name from global vendor list if applicable
-                        let otherName = 'New Chat';
+                        // New thread identification logic
+                        let otherName = msg.senderName || 'New Chat';
                         if (msg.senderModel === 'Vendor' || msg.receiverModel === 'Vendor') {
                             const v = vendors.find(vend => (vend.id || vend._id) === threadId);
                             if (v) otherName = v.BusinessName || v.FullName;
@@ -160,9 +178,10 @@ export function AppDataProvider({ children }) {
                         return [{
                             id: threadId,
                             name: otherName,
+                            initials: otherName.charAt(0).toUpperCase(),
                             preview: msg.content,
                             time: 'Just now',
-                            unread: (msg.receiver === (currentUser.id || currentUser._id)) ? 1 : 0,
+                            unread: (msg.receiver.toString() === myId) ? 1 : 0,
                             messages: [{
                                 id: msg._id,
                                 senderRole: msg.senderModel === 'User' ? 'customer' : 'vendor',
@@ -176,16 +195,52 @@ export function AppDataProvider({ children }) {
                 });
             };
 
+            const handleNotification = (notif) => {
+                setNotifications(prev => [notif, ...prev]);
+            };
+
             socket.on("receive_message", handleMessage);
             socket.on("message_sent", handleMessage);
+            socket.on("new_notification", handleNotification);
 
             return () => {
                 socket.off("receive_message", handleMessage);
                 socket.off("message_sent", handleMessage);
+                socket.off("new_notification", handleNotification);
                 socket.disconnect();
             }
         }
     }, [currentUser]);
+
+    const markNotificationRead = async (id) => {
+        try {
+            await fetch(`http://localhost:5000/notification/${id}`, { 
+                method: "PATCH", 
+                credentials: "include" 
+            });
+            setNotifications(prev => prev.map(n => n._id === id ? { ...n, isRead: true } : n));
+        } catch (e) { console.log(e); }
+    };
+
+    const markAllNotificationsRead = async () => {
+        try {
+            await fetch("http://localhost:5000/notifications/read-all", { 
+                method: "PATCH", 
+                credentials: "include" 
+            });
+            setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
+        } catch (e) { console.log(e); }
+    };
+
+    const deleteNotification = async (id) => {
+        try {
+            await fetch(`http://localhost:5000/notification/${id}`, { 
+                method: "DELETE", 
+                credentials: "include" 
+            });
+            setNotifications(prev => prev.filter(n => n._id !== id));
+        } catch (e) { console.log(e); }
+    };
 
     const [notifications, setNotifications] = useState([]);
     const [trendingProducts, setTrendingProducts] = useState([]);
@@ -274,7 +329,12 @@ export function AppDataProvider({ children }) {
         try {
             const res = await fetch("http://localhost:5000/analytics/insights", { credentials: "include" });
             const data = await res.json();
-            if (data.success) setVendorInsights(data.insights);
+            if (data.success) {
+                setVendorInsights({
+                    ...data.insights,
+                    velocity: data.velocity
+                });
+            }
         } catch (e) { console.error("Fetch Insights Error:", e); }
     };
 
@@ -352,11 +412,12 @@ export function AppDataProvider({ children }) {
         if (!currentUser) return;
         
         socket.emit("send_message", {
-            sender: currentUser.id || currentUser._id,
+            sender: (currentUser.id || currentUser._id).toString(),
             senderModel: currentUser.role === 'vendor' ? 'Vendor' : 'User',
-            receiver: threadId, // Assuming threadId is the ID of the other person
+            receiver: threadId.toString(), 
             receiverModel: currentUser.role === 'vendor' ? 'User' : 'Vendor',
-            content: text
+            content: text,
+            senderName: currentUser.FullName || currentUser.BusinessName || "Someone"
         });
     };
 
@@ -420,9 +481,22 @@ export function AppDataProvider({ children }) {
         return newThread.id;
     };
 
+    const fetchPosts = async () => {
+        if (!currentUser || currentUser.role !== 'vendor') return;
+        try {
+            const res = await fetch("http://localhost:5000/vendor/posts", { credentials: "include" });
+            if (res.ok) {
+                const data = await res.json();
+                setPosts(data.products);
+            }
+        } catch (e) { console.log(e); }
+    };
+
     // ─── Context Value ───
     const value = {
         currentUser,
+        isLoggedIn: !!currentUser,
+        userType: currentUser?.role,
         vendors,
         posts,
         threads,
@@ -448,7 +522,12 @@ export function AppDataProvider({ children }) {
         fetchTrending,
         fetchInsights,
         fetchRecommendations,
-        markNotificationsRead: () => setNotifications(notifications.map(n => ({ ...n, read: true })))
+        fetchNotifications,
+        fetchPosts,
+        markNotificationRead,
+        markAllNotificationsRead,
+        deleteNotification,
+        markNotificationsRead: markAllNotificationsRead
     };
 
 

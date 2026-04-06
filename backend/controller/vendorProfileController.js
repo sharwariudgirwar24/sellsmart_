@@ -26,7 +26,9 @@ export const updateVendorProfile = async (req, res) => {
             BusinessName: req.body.BusinessName,
             Email: req.body.Email,
             Phone: req.body.Phone,
+            category: req.body.category,
         };
+
 
         const vendor = await Vendor.findByIdAndUpdate(req.vendor.id, newVendorData, {
             new: true,

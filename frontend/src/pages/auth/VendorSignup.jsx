@@ -2,10 +2,12 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import Navbar from '../../components/shared/Navbar'
 import AnimatedBackground from '../../components/shared/AnimatedBackground'
+import { useAppData } from '../../context/AppDataContext'
 import '../../styles/auth.css'
 
 export default function VendorSignup() {
     const navigate = useNavigate()
+    const { setAuth } = useAppData()
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState("")
 
@@ -41,6 +43,7 @@ export default function VendorSignup() {
             })
             const data = await response.json()
             if (response.ok) {
+                setAuth(data.user, 'vendor')
                 navigate("/vendor-dashboard")
             } else {
                 setError(data.message || "Signup failed")
